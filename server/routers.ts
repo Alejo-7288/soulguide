@@ -502,6 +502,41 @@ export const appRouter = router({
         await db.addTeacherReply(input.reviewId, input.reply);
         return { success: true };
       }),
+    
+    // Get reviews for management (with reply functionality)
+    getReviews: teacherProcedure.query(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) return [];
+      return db.getTeacherReviewsForManagement(profile.id);
+    }),
+    
+    // Get income statistics
+    getIncomeStats: teacherProcedure.query(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) return { totalIncome: 0, thisMonthIncome: 0, lastMonthIncome: 0, completedBookings: 0 };
+      return db.getTeacherIncomeStats(profile.id);
+    }),
+    
+    // Get monthly income for charts
+    getMonthlyIncome: teacherProcedure.query(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) return [];
+      return db.getTeacherMonthlyIncome(profile.id);
+    }),
+    
+    // Get client list
+    getClients: teacherProcedure.query(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) return [];
+      return db.getTeacherClients(profile.id);
+    }),
+    
+    // Get booking statistics
+    getBookingStats: teacherProcedure.query(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) return { pending: 0, confirmed: 0, completed: 0, cancelled: 0, thisMonth: 0 };
+      return db.getTeacherBookingStats(profile.id);
+    }),
   }),
 
   // ============ USER DASHBOARD ============

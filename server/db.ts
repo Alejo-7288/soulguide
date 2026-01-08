@@ -798,3 +798,175 @@ export async function getDistinctRegions() {
 
   return result.map(r => r.region).filter(Boolean) as string[];
 }
+
+
+// ============ TEACHER DASHBOARD EXTENDED FUNCTIONS ============
+
+// Get all reviews for a teacher (including those without replies for management)
+export async function getTeacherReviewsForManagement(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      review: reviews,
+      user: users,
+      booking: bookings,
+    })
+    .from(reviews)
+    .innerJoin(users, eq(reviews.userId, users.id))
+    .leftJoin(bookings, eq(reviews.bookingId, bookings.id))
+    .where(eq(reviews.teacherProfileId, teacherProfileId))
+    .orderBy(desc(reviews.createdAt));
+}
+
+// Get income statistics for a teacher
+export async function getTeacherIncomeStats(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return { totalIncome: 0, thisMonthIncome: 0, lastMonthIncome: 0, completedBookings: 0 };
+
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // Total income from completed bookings
+  const totalResult = await db
+    .select({
+      total: sql<string>`COALESCE(SUM(total_amount), 0)`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(bookings)
+    .where(and(
+      eq(bookings.teacherProfileId, teacherProfileId),
+      eq(bookings.status, 'completed')
+    ));
+
+  // This month income
+  const thisMonthResult = await db
+    .select({
+      total: sql<string>`COALESCE(SUM(total_amount), 0)`,
+    })
+    .from(bookings)
+    .where(and(
+      eq(bookings.teacherProfileId, teacherProfileId),
+      eq(bookings.status, 'completed'),
+      sql`${bookings.bookingDate} >= ${thisMonthStart.toISOString().split('T')[0]}`
+    ));
+
+  // Last month income
+  const lastMonthResult = await db
+    .select({
+      total: sql<string>`COALESCE(SUM(total_amount), 0)`,
+    })
+    .from(bookings)
+    .where(and(
+      eq(bookings.teacherProfileId, teacherProfileId),
+      eq(bookings.status, 'completed'),
+      sql`${bookings.bookingDate} >= ${lastMonthStart.toISOString().split('T')[0]}`,
+      sql`${bookings.bookingDate} <= ${lastMonthEnd.toISOString().split('T')[0]}`
+    ));
+
+  return {
+    totalIncome: parseFloat(totalResult[0]?.total || '0'),
+    thisMonthIncome: parseFloat(thisMonthResult[0]?.total || '0'),
+    lastMonthIncome: parseFloat(lastMonthResult[0]?.total || '0'),
+    completedBookings: totalResult[0]?.count || 0,
+  };
+}
+
+// Get monthly income data for charts (last 6 months)
+export async function getTeacherMonthlyIncome(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const result = await db
+    .select({
+      month: sql<string>`DATE_FORMAT(booking_date, '%Y-%m')`,
+      total: sql<string>`COALESCE(SUM(total_amount), 0)`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(bookings)
+    .where(and(
+      eq(bookings.teacherProfileId, teacherProfileId),
+      eq(bookings.status, 'completed'),
+      sql`${bookings.bookingDate} >= ${sixMonthsAgo.toISOString().split('T')[0]}`
+    ))
+    .groupBy(sql`DATE_FORMAT(booking_date, '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(booking_date, '%Y-%m')`);
+
+  return result.map(r => ({
+    month: r.month,
+    income: parseFloat(r.total || '0'),
+    bookings: r.count,
+  }));
+}
+
+// Get unique clients (users who have booked with this teacher)
+export async function getTeacherClients(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const result = await db
+    .select({
+      user: users,
+      totalBookings: sql<number>`COUNT(DISTINCT ${bookings.id})`,
+      totalSpent: sql<string>`COALESCE(SUM(${bookings.totalAmount}), 0)`,
+      lastBooking: sql<Date>`MAX(${bookings.bookingDate})`,
+    })
+    .from(bookings)
+    .innerJoin(users, eq(bookings.userId, users.id))
+    .where(eq(bookings.teacherProfileId, teacherProfileId))
+    .groupBy(users.id)
+    .orderBy(desc(sql`MAX(${bookings.bookingDate})`));
+
+  return result.map(r => ({
+    user: r.user,
+    totalBookings: r.totalBookings,
+    totalSpent: parseFloat(r.totalSpent || '0'),
+    lastBooking: r.lastBooking,
+  }));
+}
+
+// Get booking statistics for teacher dashboard
+export async function getTeacherBookingStats(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return { pending: 0, confirmed: 0, completed: 0, cancelled: 0, thisMonth: 0 };
+
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const statusCounts = await db
+    .select({
+      status: bookings.status,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(bookings)
+    .where(eq(bookings.teacherProfileId, teacherProfileId))
+    .groupBy(bookings.status);
+
+  const thisMonthCount = await db
+    .select({
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(bookings)
+    .where(and(
+      eq(bookings.teacherProfileId, teacherProfileId),
+      sql`${bookings.bookingDate} >= ${thisMonthStart.toISOString().split('T')[0]}`
+    ));
+
+  const stats: Record<string, number> = { pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+  statusCounts.forEach(s => {
+    if (s.status && stats.hasOwnProperty(s.status)) {
+      stats[s.status] = s.count;
+    }
+  });
+
+  return {
+    ...stats,
+    thisMonth: thisMonthCount[0]?.count || 0,
+  };
+}
