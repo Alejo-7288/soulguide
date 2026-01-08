@@ -5,31 +5,40 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Search from "./pages/Search";
+import TeacherDetail from "./pages/TeacherDetail";
+import Booking from "./pages/Booking";
+import UserDashboard from "./pages/UserDashboard";
+import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherRegister from "./pages/TeacherRegister";
+import TeacherSettings from "./pages/TeacherSettings";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      <Route path="/" component={Home} />
+      <Route path="/search" component={Search} />
+      <Route path="/teacher/:id" component={TeacherDetail} />
+      <Route path="/book/:teacherId" component={Booking} />
+      <Route path="/book/:teacherId/:serviceId" component={Booking} />
+      <Route path="/dashboard" component={UserDashboard} />
+      <Route path="/teacher/dashboard" component={TeacherDashboard} />
+      <Route path="/teacher/register" component={TeacherRegister} />
+      <Route path="/teacher/settings" component={TeacherSettings} />
+      <Route path="/payment/success" component={PaymentSuccess} />
+      <Route path="/payment/cancel" component={PaymentCancel} />
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <Router />

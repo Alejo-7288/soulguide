@@ -1,11 +1,21 @@
-import { eq } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { 
+  InsertUser, users, 
+  categories, Category, InsertCategory,
+  teacherProfiles, TeacherProfile, InsertTeacherProfile,
+  teacherCategories, TeacherCategory, InsertTeacherCategory,
+  services, Service, InsertService,
+  availability, Availability, InsertAvailability,
+  bookings, Booking, InsertBooking,
+  reviews, Review, InsertReview,
+  notifications, Notification, InsertNotification,
+  favorites, Favorite, InsertFavorite
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -18,6 +28,7 @@ export async function getDb() {
   return _db;
 }
 
+// ============ USER FUNCTIONS ============
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
@@ -35,7 +46,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
     const updateSet: Record<string, unknown> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
+    const textFields = ["name", "email", "loginMethod", "avatarUrl", "phone"] as const;
     type TextField = (typeof textFields)[number];
 
     const assignNullable = (field: TextField) => {
@@ -85,8 +96,522 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateUserRole(userId: number, role: "user" | "admin" | "teacher") {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
+// ============ CATEGORY FUNCTIONS ============
+export async function getAllCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(categories).orderBy(asc(categories.sortOrder));
+}
+
+export async function getCategoryBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(categories).where(eq(categories.slug, slug)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createCategory(data: InsertCategory) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(categories).values(data);
+}
+
+// ============ TEACHER PROFILE FUNCTIONS ============
+export async function getTeacherProfileByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(teacherProfiles).where(eq(teacherProfiles.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getTeacherProfileById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(teacherProfiles).where(eq(teacherProfiles.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createTeacherProfile(data: InsertTeacherProfile) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(teacherProfiles).values(data);
+  return result[0].insertId;
+}
+
+export async function updateTeacherProfile(id: number, data: Partial<InsertTeacherProfile>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(teacherProfiles).set(data).where(eq(teacherProfiles.id, id));
+}
+
+export async function searchTeachers(params: {
+  categoryId?: number;
+  region?: string;
+  query?: string;
+  sortBy?: "rating" | "bookings" | "newest";
+  limit?: number;
+  offset?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { teachers: [], total: 0 };
+
+  const { categoryId, region, query, sortBy = "rating", limit = 20, offset = 0 } = params;
+
+  let baseQuery = db
+    .select({
+      profile: teacherProfiles,
+      user: users,
+    })
+    .from(teacherProfiles)
+    .innerJoin(users, eq(teacherProfiles.userId, users.id))
+    .where(eq(teacherProfiles.isActive, true))
+    .$dynamic();
+
+  // Apply filters
+  const conditions = [eq(teacherProfiles.isActive, true)];
+  
+  if (region) {
+    conditions.push(eq(teacherProfiles.region, region));
+  }
+  
+  if (query) {
+    conditions.push(
+      or(
+        like(teacherProfiles.displayName, `%${query}%`),
+        like(teacherProfiles.bio, `%${query}%`),
+        like(teacherProfiles.title, `%${query}%`)
+      )!
+    );
+  }
+
+  // Build the query with conditions
+  let teacherQuery = db
+    .select({
+      profile: teacherProfiles,
+      user: users,
+    })
+    .from(teacherProfiles)
+    .innerJoin(users, eq(teacherProfiles.userId, users.id))
+    .where(and(...conditions))
+    .$dynamic();
+
+  // If categoryId is provided, join with teacherCategories
+  if (categoryId) {
+    teacherQuery = db
+      .select({
+        profile: teacherProfiles,
+        user: users,
+      })
+      .from(teacherProfiles)
+      .innerJoin(users, eq(teacherProfiles.userId, users.id))
+      .innerJoin(teacherCategories, eq(teacherProfiles.id, teacherCategories.teacherProfileId))
+      .where(and(...conditions, eq(teacherCategories.categoryId, categoryId)))
+      .$dynamic();
+  }
+
+  // Apply sorting
+  if (sortBy === "rating") {
+    teacherQuery = teacherQuery.orderBy(desc(teacherProfiles.averageRating));
+  } else if (sortBy === "bookings") {
+    teacherQuery = teacherQuery.orderBy(desc(teacherProfiles.totalBookings));
+  } else {
+    teacherQuery = teacherQuery.orderBy(desc(teacherProfiles.createdAt));
+  }
+
+  const teachers = await teacherQuery.limit(limit).offset(offset);
+
+  // Get total count
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(teacherProfiles)
+    .where(and(...conditions));
+  
+  const total = countResult[0]?.count ?? 0;
+
+  return { teachers, total };
+}
+
+export async function getFeaturedTeachers(limit = 6) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      profile: teacherProfiles,
+      user: users,
+    })
+    .from(teacherProfiles)
+    .innerJoin(users, eq(teacherProfiles.userId, users.id))
+    .where(and(eq(teacherProfiles.isActive, true), eq(teacherProfiles.isFeatured, true)))
+    .orderBy(desc(teacherProfiles.averageRating))
+    .limit(limit);
+}
+
+export async function getTopRatedTeachers(limit = 10) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      profile: teacherProfiles,
+      user: users,
+    })
+    .from(teacherProfiles)
+    .innerJoin(users, eq(teacherProfiles.userId, users.id))
+    .where(eq(teacherProfiles.isActive, true))
+    .orderBy(desc(teacherProfiles.averageRating), desc(teacherProfiles.totalReviews))
+    .limit(limit);
+}
+
+// ============ TEACHER CATEGORIES FUNCTIONS ============
+export async function getTeacherCategories(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      category: categories,
+    })
+    .from(teacherCategories)
+    .innerJoin(categories, eq(teacherCategories.categoryId, categories.id))
+    .where(eq(teacherCategories.teacherProfileId, teacherProfileId));
+}
+
+export async function setTeacherCategories(teacherProfileId: number, categoryIds: number[]) {
+  const db = await getDb();
+  if (!db) return;
+
+  // Delete existing
+  await db.delete(teacherCategories).where(eq(teacherCategories.teacherProfileId, teacherProfileId));
+
+  // Insert new
+  if (categoryIds.length > 0) {
+    await db.insert(teacherCategories).values(
+      categoryIds.map(categoryId => ({ teacherProfileId, categoryId }))
+    );
+  }
+}
+
+// ============ SERVICE FUNCTIONS ============
+export async function getServicesByTeacher(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      service: services,
+      category: categories,
+    })
+    .from(services)
+    .innerJoin(categories, eq(services.categoryId, categories.id))
+    .where(and(eq(services.teacherProfileId, teacherProfileId), eq(services.isActive, true)))
+    .orderBy(asc(services.name));
+}
+
+export async function getServiceById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(services).where(eq(services.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createService(data: InsertService) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(services).values(data);
+  return result[0].insertId;
+}
+
+export async function updateService(id: number, data: Partial<InsertService>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(services).set(data).where(eq(services.id, id));
+}
+
+export async function deleteService(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(services).set({ isActive: false }).where(eq(services.id, id));
+}
+
+// ============ AVAILABILITY FUNCTIONS ============
+export async function getTeacherAvailability(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(availability)
+    .where(and(eq(availability.teacherProfileId, teacherProfileId), eq(availability.isActive, true)))
+    .orderBy(asc(availability.dayOfWeek), asc(availability.startTime));
+}
+
+export async function setTeacherAvailability(teacherProfileId: number, slots: InsertAvailability[]) {
+  const db = await getDb();
+  if (!db) return;
+
+  // Delete existing
+  await db.delete(availability).where(eq(availability.teacherProfileId, teacherProfileId));
+
+  // Insert new
+  if (slots.length > 0) {
+    await db.insert(availability).values(slots);
+  }
+}
+
+// ============ BOOKING FUNCTIONS ============
+export async function createBooking(data: InsertBooking) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(bookings).values(data);
+  return result[0].insertId;
+}
+
+export async function getBookingById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(bookings).where(eq(bookings.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getBookingsByUser(userId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      booking: bookings,
+      service: services,
+      teacherProfile: teacherProfiles,
+    })
+    .from(bookings)
+    .innerJoin(services, eq(bookings.serviceId, services.id))
+    .innerJoin(teacherProfiles, eq(bookings.teacherProfileId, teacherProfiles.id))
+    .where(eq(bookings.userId, userId))
+    .orderBy(desc(bookings.bookingDate))
+    .limit(limit);
+}
+
+export async function getBookingsByTeacher(teacherProfileId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      booking: bookings,
+      service: services,
+      user: users,
+    })
+    .from(bookings)
+    .innerJoin(services, eq(bookings.serviceId, services.id))
+    .innerJoin(users, eq(bookings.userId, users.id))
+    .where(eq(bookings.teacherProfileId, teacherProfileId))
+    .orderBy(desc(bookings.bookingDate))
+    .limit(limit);
+}
+
+export async function updateBookingStatus(id: number, status: Booking["status"]) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(bookings).set({ status }).where(eq(bookings.id, id));
+}
+
+export async function updateBookingPayment(id: number, paymentStatus: Booking["paymentStatus"], stripePaymentIntentId?: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(bookings).set({ 
+    paymentStatus, 
+    stripePaymentIntentId: stripePaymentIntentId ?? null 
+  }).where(eq(bookings.id, id));
+}
+
+// ============ REVIEW FUNCTIONS ============
+export async function createReview(data: InsertReview) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(reviews).values(data);
+  
+  // Update teacher stats
+  await updateTeacherReviewStats(data.teacherProfileId);
+  
+  return result[0].insertId;
+}
+
+export async function getReviewsByTeacher(teacherProfileId: number, limit = 20, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      review: reviews,
+      user: users,
+    })
+    .from(reviews)
+    .innerJoin(users, eq(reviews.userId, users.id))
+    .where(and(eq(reviews.teacherProfileId, teacherProfileId), eq(reviews.isVisible, true)))
+    .orderBy(desc(reviews.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getReviewByBooking(bookingId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(reviews).where(eq(reviews.bookingId, bookingId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function addTeacherReply(reviewId: number, reply: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(reviews).set({ 
+    teacherReply: reply, 
+    teacherReplyAt: new Date() 
+  }).where(eq(reviews.id, reviewId));
+}
+
+async function updateTeacherReviewStats(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return;
+
+  const stats = await db
+    .select({
+      avgRating: sql<string>`AVG(rating)`,
+      totalReviews: sql<number>`COUNT(*)`,
+    })
+    .from(reviews)
+    .where(and(eq(reviews.teacherProfileId, teacherProfileId), eq(reviews.isVisible, true)));
+
+  if (stats[0]) {
+    await db.update(teacherProfiles).set({
+      averageRating: stats[0].avgRating ?? "0.00",
+      totalReviews: stats[0].totalReviews ?? 0,
+    }).where(eq(teacherProfiles.id, teacherProfileId));
+  }
+}
+
+// ============ NOTIFICATION FUNCTIONS ============
+export async function createNotification(data: InsertNotification) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(notifications).values(data);
+  return result[0].insertId;
+}
+
+export async function getNotificationsByUser(userId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit);
+}
+
+export async function markNotificationRead(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+}
+
+export async function markAllNotificationsRead(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
+}
+
+export async function getUnreadNotificationCount(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(notifications)
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+
+  return result[0]?.count ?? 0;
+}
+
+// ============ FAVORITES FUNCTIONS ============
+export async function addFavorite(userId: number, teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(favorites).values({ userId, teacherProfileId }).onDuplicateKeyUpdate({
+    set: { userId }
+  });
+}
+
+export async function removeFavorite(userId: number, teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(favorites).where(
+    and(eq(favorites.userId, userId), eq(favorites.teacherProfileId, teacherProfileId))
+  );
+}
+
+export async function getUserFavorites(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      favorite: favorites,
+      profile: teacherProfiles,
+    })
+    .from(favorites)
+    .innerJoin(teacherProfiles, eq(favorites.teacherProfileId, teacherProfiles.id))
+    .where(eq(favorites.userId, userId))
+    .orderBy(desc(favorites.createdAt));
+}
+
+export async function isFavorite(userId: number, teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return false;
+
+  const result = await db
+    .select()
+    .from(favorites)
+    .where(and(eq(favorites.userId, userId), eq(favorites.teacherProfileId, teacherProfileId)))
+    .limit(1);
+
+  return result.length > 0;
+}
+
+// ============ STATS FUNCTIONS ============
+export async function incrementTeacherBookings(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(teacherProfiles).set({
+    totalBookings: sql`${teacherProfiles.totalBookings} + 1`
+  }).where(eq(teacherProfiles.id, teacherProfileId));
+}
+
+export async function getDistinctRegions() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const result = await db
+    .selectDistinct({ region: teacherProfiles.region })
+    .from(teacherProfiles)
+    .where(and(eq(teacherProfiles.isActive, true), sql`${teacherProfiles.region} IS NOT NULL`));
+
+  return result.map(r => r.region).filter(Boolean) as string[];
+}
