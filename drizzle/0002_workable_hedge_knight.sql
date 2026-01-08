@@ -1,0 +1,1 @@
+ALTER TABLE `notifications` MODIFY COLUMN `type` enum('booking_new','booking_confirmed','booking_cancelled','booking_rescheduled','booking_reminder','review_new','payment_received','system') NOT NULL;

@@ -441,6 +441,85 @@ export async function updateBookingPayment(id: number, paymentStatus: Booking["p
   }).where(eq(bookings.id, id));
 }
 
+// Check for booking time conflicts
+export async function checkBookingConflict(
+  teacherProfileId: number,
+  bookingDate: Date,
+  startTime: string,
+  endTime: string,
+  excludeBookingId?: number
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  // Get the date string for comparison
+  const dateStr = bookingDate.toISOString().split('T')[0];
+  
+  const conditions = [
+    eq(bookings.teacherProfileId, teacherProfileId),
+    sql`DATE(${bookings.bookingDate}) = ${dateStr}`,
+    sql`${bookings.status} NOT IN ('cancelled', 'refunded')`,
+    // Check time overlap: (start1 < end2) AND (end1 > start2)
+    sql`${bookings.startTime} < ${endTime}`,
+    sql`${bookings.endTime} > ${startTime}`,
+  ];
+
+  if (excludeBookingId) {
+    conditions.push(sql`${bookings.id} != ${excludeBookingId}`);
+  }
+
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(bookings)
+    .where(and(...conditions));
+
+  return (result[0]?.count ?? 0) > 0;
+}
+
+// Get booked time slots for a teacher on a specific date
+export async function getBookedSlots(
+  teacherProfileId: number,
+  bookingDate: Date
+): Promise<{ startTime: string; endTime: string }[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const dateStr = bookingDate.toISOString().split('T')[0];
+
+  const result = await db
+    .select({
+      startTime: bookings.startTime,
+      endTime: bookings.endTime,
+    })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.teacherProfileId, teacherProfileId),
+        sql`DATE(${bookings.bookingDate}) = ${dateStr}`,
+        sql`${bookings.status} NOT IN ('cancelled', 'refunded')`
+      )
+    );
+
+  return result;
+}
+
+// Reschedule a booking
+export async function rescheduleBooking(
+  id: number,
+  newDate: Date,
+  newStartTime: string,
+  newEndTime: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(bookings).set({
+    bookingDate: newDate,
+    startTime: newStartTime,
+    endTime: newEndTime,
+    status: 'pending', // Reset to pending for teacher confirmation
+  }).where(eq(bookings.id, id));
+}
+
 // ============ REVIEW FUNCTIONS ============
 export async function createReview(data: InsertReview) {
   const db = await getDb();

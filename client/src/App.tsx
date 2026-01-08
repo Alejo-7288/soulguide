@@ -14,6 +14,7 @@ import TeacherRegister from "./pages/TeacherRegister";
 import TeacherSettings from "./pages/TeacherSettings";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
+import BookingDetail from "./pages/BookingDetail";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/teacher/settings" component={TeacherSettings} />
       <Route path="/payment/success" component={PaymentSuccess} />
       <Route path="/payment/cancel" component={PaymentCancel} />
+      <Route path="/booking/:bookingId" component={BookingDetail} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

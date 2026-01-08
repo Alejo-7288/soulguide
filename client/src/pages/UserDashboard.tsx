@@ -134,6 +134,11 @@ function BookingCard({ booking }: { booking: any }) {
               </Button>
             </Link>
           )}
+          <Link href={`/booking/${booking.booking.id}`}>
+            <Button variant="outline" size="sm">
+              查看詳情
+            </Button>
+          </Link>
           <Link href={`/teacher/${booking.teacherProfile.id}`}>
             <Button variant="ghost" size="sm">
               查看老師 <ChevronRight className="w-4 h-4" />

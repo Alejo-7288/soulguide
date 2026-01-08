@@ -46,6 +46,12 @@ export default function Booking() {
     { enabled: teacherId > 0 }
   );
 
+  // Query booked slots for the selected date
+  const { data: bookedSlots } = trpc.bookings.getBookedSlots.useQuery(
+    { teacherProfileId: teacherId, date: selectedDate?.toISOString() || "" },
+    { enabled: !!selectedDate && teacherId > 0 }
+  );
+
   const [bookingId, setBookingId] = useState<number | null>(null);
 
   const createBookingMutation = trpc.bookings.create.useMutation({
@@ -170,6 +176,23 @@ export default function Booking() {
     const endMin = totalMin % 60;
     return `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
   }, [selectedTime, selectedService]);
+
+  // Check if a time slot conflicts with existing bookings
+  const isTimeSlotBooked = (time: string) => {
+    if (!bookedSlots || !selectedService) return false;
+    const [hour, min] = time.split(":").map(Number);
+    const slotStart = hour * 60 + min;
+    const slotEnd = slotStart + selectedService.service.duration;
+
+    return bookedSlots.some((booked) => {
+      const [bStartH, bStartM] = booked.startTime.split(":").map(Number);
+      const [bEndH, bEndM] = booked.endTime.split(":").map(Number);
+      const bookedStart = bStartH * 60 + bStartM;
+      const bookedEnd = bEndH * 60 + bEndM;
+      // Check overlap: (start1 < end2) AND (end1 > start2)
+      return slotStart < bookedEnd && slotEnd > bookedStart;
+    });
+  };
 
   // Check if date is available
   const isDateAvailable = (date: Date) => {
@@ -386,17 +409,23 @@ export default function Booking() {
                     </h3>
                     {availableTimeSlots.length > 0 ? (
                       <div className="grid grid-cols-4 gap-2">
-                        {availableTimeSlots.map((time) => (
-                          <Button
-                            key={time}
-                            variant={selectedTime === time ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setSelectedTime(time)}
-                            className={selectedTime === time ? "gold-gradient text-foreground" : ""}
-                          >
-                            {time}
-                          </Button>
-                        ))}
+                        {availableTimeSlots.map((time) => {
+                          const isBooked = isTimeSlotBooked(time);
+                          return (
+                            <Button
+                              key={time}
+                              variant={selectedTime === time ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => !isBooked && setSelectedTime(time)}
+                              disabled={isBooked}
+                              className={`${selectedTime === time ? "gold-gradient text-foreground" : ""} ${isBooked ? "opacity-50 cursor-not-allowed line-through" : ""}`}
+                              title={isBooked ? "該時段已被預約" : ""}
+                            >
+                              {time}
+                              {isBooked && <span className="sr-only">(已預約)</span>}
+                            </Button>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-muted-foreground text-center py-4">

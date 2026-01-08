@@ -109,6 +109,12 @@ export const appRouter = router({
         };
       }),
     
+    getAvailability: publicProcedure
+      .input(z.object({ teacherProfileId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getTeacherAvailability(input.teacherProfileId);
+      }),
+    
     getReviews: publicProcedure
       .input(z.object({
         teacherProfileId: z.number(),
@@ -414,6 +420,18 @@ export const appRouter = router({
           throw new TRPCError({ code: 'NOT_FOUND', message: '找不到該服務' });
         }
         
+        // Check for time conflicts
+        const hasConflict = await db.checkBookingConflict(
+          input.teacherProfileId,
+          new Date(input.bookingDate),
+          input.startTime,
+          input.endTime
+        );
+        
+        if (hasConflict) {
+          throw new TRPCError({ code: 'CONFLICT', message: '該時段已被預約，請選擇其他時間' });
+        }
+        
         const bookingId = await db.createBooking({
           ...input,
           userId: ctx.user.id,
@@ -519,6 +537,87 @@ export const appRouter = router({
             title: '預約已取消',
             message: '用戶已取消預約',
             relatedBookingId: input.id,
+          });
+        }
+        
+        return { success: true };
+      }),
+    
+    // Check time slot availability
+    checkAvailability: publicProcedure
+      .input(z.object({
+        teacherProfileId: z.number(),
+        date: z.string(),
+        startTime: z.string(),
+        endTime: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const hasConflict = await db.checkBookingConflict(
+          input.teacherProfileId,
+          new Date(input.date),
+          input.startTime,
+          input.endTime
+        );
+        return { available: !hasConflict };
+      }),
+    
+    // Get booked slots for a date
+    getBookedSlots: publicProcedure
+      .input(z.object({
+        teacherProfileId: z.number(),
+        date: z.string(),
+      }))
+      .query(async ({ input }) => {
+        return db.getBookedSlots(input.teacherProfileId, new Date(input.date));
+      }),
+    
+    // Reschedule booking
+    reschedule: protectedProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        newDate: z.string(),
+        newStartTime: z.string(),
+        newEndTime: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const booking = await db.getBookingById(input.bookingId);
+        if (!booking || booking.userId !== ctx.user.id) {
+          throw new TRPCError({ code: 'FORBIDDEN' });
+        }
+        
+        if (booking.status === 'cancelled' || booking.status === 'completed') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '無法改期此預約' });
+        }
+        
+        // Check for conflicts
+        const hasConflict = await db.checkBookingConflict(
+          booking.teacherProfileId,
+          new Date(input.newDate),
+          input.newStartTime,
+          input.newEndTime,
+          input.bookingId
+        );
+        
+        if (hasConflict) {
+          throw new TRPCError({ code: 'CONFLICT', message: '該時段已被預約，請選擇其他時間' });
+        }
+        
+        await db.rescheduleBooking(
+          input.bookingId,
+          new Date(input.newDate),
+          input.newStartTime,
+          input.newEndTime
+        );
+        
+        // Notify teacher
+        const profile = await db.getTeacherProfileById(booking.teacherProfileId);
+        if (profile) {
+          await db.createNotification({
+            userId: profile.userId,
+            type: 'booking_rescheduled',
+            title: '預約改期通知',
+            message: '用戶已更改預約時間，請確認',
+            relatedBookingId: input.bookingId,
           });
         }
         
