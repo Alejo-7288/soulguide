@@ -173,6 +173,12 @@ export async function updateUserLastSignedIn(userId: number) {
   await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
 
+export async function updateUserPassword(userId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+}
+
 // ============ CATEGORY FUNCTIONS ============
 export async function getAllCategories() {
   const db = await getDb();
@@ -615,6 +621,43 @@ export async function getReviewByBooking(bookingId: number) {
   if (!db) return undefined;
   const result = await db.select().from(reviews).where(eq(reviews.bookingId, bookingId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getReviewsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Get reviews with teacher profile info
+  // Note: reviews don't have serviceId, so we join through bookings if available
+  const result = await db
+    .select({
+      review: reviews,
+      teacherProfile: teacherProfiles,
+      booking: bookings,
+    })
+    .from(reviews)
+    .innerJoin(teacherProfiles, eq(reviews.teacherProfileId, teacherProfiles.id))
+    .leftJoin(bookings, eq(reviews.bookingId, bookings.id))
+    .where(eq(reviews.userId, userId))
+    .orderBy(desc(reviews.createdAt));
+
+  // Fetch service info for each review that has a booking
+  const reviewsWithService = await Promise.all(
+    result.map(async (r) => {
+      let service = null;
+      if (r.booking?.serviceId) {
+        const serviceResult = await db.select().from(services).where(eq(services.id, r.booking.serviceId)).limit(1);
+        service = serviceResult[0] || null;
+      }
+      return {
+        review: r.review,
+        teacherProfile: r.teacherProfile,
+        service,
+      };
+    })
+  );
+
+  return reviewsWithService;
 }
 
 export async function addTeacherReply(reviewId: number, reply: string) {

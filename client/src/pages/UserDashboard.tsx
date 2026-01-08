@@ -20,7 +20,14 @@ import {
   Phone,
   Instagram,
   Save,
-  Loader2
+  Loader2,
+  Lock,
+  Camera,
+  Eye,
+  EyeOff,
+  History,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +36,15 @@ import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const statusLabels: Record<string, { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { text: "待確認", variant: "secondary" },
@@ -207,6 +223,158 @@ function ProfileSettingsForm({ user }: { user: any }) {
           </p>
         </div>
       </div>
+
+      {/* Change Password Section - Only for email login users */}
+      {user?.loginMethod === 'email' && (
+        <ChangePasswordSection />
+      )}
+    </div>
+  );
+}
+
+function ChangePasswordSection() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwords, setPasswords] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const changePasswordMutation = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("密碼已成功修改");
+      setIsOpen(false);
+      setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    },
+    onError: (error: { message?: string }) => {
+      toast.error(error.message || "修改密碼失敗");
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      toast.error("新密碼與確認密碼不符");
+      return;
+    }
+    if (passwords.newPassword.length < 8) {
+      toast.error("新密碼至少需要8個字元");
+      return;
+    }
+    changePasswordMutation.mutate({
+      currentPassword: passwords.currentPassword,
+      newPassword: passwords.newPassword,
+    });
+  };
+
+  return (
+    <div className="mt-6 pt-6 border-t">
+      <h4 className="text-sm font-medium text-muted-foreground mb-4">安全設定</h4>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline">
+            <Lock className="w-4 h-4 mr-2" />
+            修改密碼
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>修改密碼</DialogTitle>
+            <DialogDescription>
+              請輸入您的現有密碼和新密碼
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">現有密碼</Label>
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={passwords.currentPassword}
+                  onChange={(e) => setPasswords(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">新密碼</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  value={passwords.newPassword}
+                  onChange={(e) => setPasswords(prev => ({ ...prev, newPassword: e.target.value }))}
+                  required
+                  minLength={8}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">密碼至少需要8個字元</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">確認新密碼</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={passwords.confirmPassword}
+                  onChange={(e) => setPasswords(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+                取消
+              </Button>
+              <Button 
+                type="submit" 
+                className="gold-gradient text-foreground hover:opacity-90"
+                disabled={changePasswordMutation.isPending}
+              >
+                {changePasswordMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    處理中...
+                  </>
+                ) : (
+                  "確認修改"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -437,6 +605,81 @@ function NotificationItem({ notification }: { notification: any }) {
   );
 }
 
+function MyReviewsSection() {
+  const { data: reviews, isLoading } = trpc.userDashboard.getMyReviews.useQuery();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="elegant-card h-32 animate-pulse bg-muted" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!reviews || reviews.length === 0) {
+    return (
+      <div className="elegant-card p-12 text-center">
+        <Star className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">尚無評價記錄</h3>
+        <p className="text-muted-foreground mb-6">完成預約後可以撰寫評價</p>
+        <Link href="/search">
+          <Button className="gold-gradient text-foreground hover:opacity-90">
+            搜尋老師
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {reviews.map((review: any) => (
+        <div key={review.review.id} className="elegant-card p-5">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl">
+                {review.teacherProfile?.avatarUrl ? (
+                  <img src={review.teacherProfile.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  "👤"
+                )}
+              </div>
+              <div>
+                <Link href={`/teacher/${review.teacherProfile?.id}`}>
+                  <h4 className="font-medium hover:text-primary transition-colors">
+                    {review.teacherProfile?.displayName || "未知老師"}
+                  </h4>
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(review.review.createdAt), "yyyy年M月d日", { locale: zhTW })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${star <= review.review.rating ? "star-filled" : "text-muted-foreground"}`}
+                />
+              ))}
+            </div>
+          </div>
+          <p className="text-muted-foreground">{review.review.comment}</p>
+          {review.service && (
+            <div className="mt-3 pt-3 border-t">
+              <span className="text-sm text-muted-foreground">
+                服務項目：{review.service.name}
+              </span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function UserDashboard() {
   const { user, isAuthenticated, logout, loading } = useAuth();
   const [, navigate] = useLocation();
@@ -559,6 +802,10 @@ export default function UserDashboard() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="reviews" className="gap-2">
+              <Star className="w-4 h-4" />
+              我的評價
+            </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2">
               <Settings className="w-4 h-4" />
               個人設定
@@ -617,6 +864,10 @@ export default function UserDashboard() {
                 </Link>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="reviews">
+            <MyReviewsSection />
           </TabsContent>
 
           <TabsContent value="settings">

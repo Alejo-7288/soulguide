@@ -134,6 +134,37 @@ export const appRouter = router({
         await db.updateUserProfile(ctx.user.id, input);
         return { success: true };
       }),
+    
+    // Change password (for email login users only)
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1, "請輸入現有密碼"),
+        newPassword: z.string().min(8, "新密碼至少需要8個字元"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Get user with password
+        const user = await db.getUserById(ctx.user.id);
+        if (!user) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '用戶不存在' });
+        }
+        
+        // Check if user has password (email login)
+        if (!user.passwordHash) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '此帳戶不支援密碼修改' });
+        }
+        
+        // Verify current password
+        const isValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+        if (!isValid) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '現有密碼不正確' });
+        }
+        
+        // Hash new password and update
+        const newPasswordHash = await bcrypt.hash(input.newPassword, 12);
+        await db.updateUserPassword(ctx.user.id, newPasswordHash);
+        
+        return { success: true };
+      }),
   }),
 
   // ============ CATEGORIES ============
@@ -500,6 +531,10 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         return db.isFavorite(ctx.user.id, input.teacherProfileId);
       }),
+    
+    getMyReviews: protectedProcedure.query(async ({ ctx }) => {
+      return db.getReviewsByUser(ctx.user.id);
+    }),
   }),
 
   // ============ BOOKINGS ============
