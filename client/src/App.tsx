@@ -25,13 +25,14 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/search" component={Search} />
+      {/* 具體的 /teacher/* 路由必須放在通用的 /teacher/:id 之前 */}
+      <Route path="/teacher/dashboard" component={TeacherDashboard} />
+      <Route path="/teacher/register" component={TeacherRegister} />
+      <Route path="/teacher/settings" component={TeacherSettings} />
       <Route path="/teacher/:id" component={TeacherDetail} />
       <Route path="/book/:teacherId" component={Booking} />
       <Route path="/book/:teacherId/:serviceId" component={Booking} />
       <Route path="/dashboard" component={UserDashboard} />
-      <Route path="/teacher/dashboard" component={TeacherDashboard} />
-      <Route path="/teacher/register" component={TeacherRegister} />
-      <Route path="/teacher/settings" component={TeacherSettings} />
       <Route path="/payment/success" component={PaymentSuccess} />
       <Route path="/payment/cancel" component={PaymentCancel} />
       <Route path="/booking/:bookingId" component={BookingDetail} />
