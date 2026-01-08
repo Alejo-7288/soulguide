@@ -481,10 +481,17 @@ function AuthButton() {
   }
 
   return (
-    <a href={getLoginUrl()}>
-      <Button className="gold-gradient text-foreground hover:opacity-90">
-        登入 / 註冊
-      </Button>
-    </a>
+    <div className="flex items-center gap-2">
+      <Link href="/login">
+        <Button variant="ghost" size="sm">
+          登入
+        </Button>
+      </Link>
+      <Link href="/register">
+        <Button className="gold-gradient text-foreground hover:opacity-90" size="sm">
+          註冊
+        </Button>
+      </Link>
+    </div>
   );
 }

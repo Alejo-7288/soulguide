@@ -1,10 +1,12 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import * as db from "./db";
+import bcrypt from "bcryptjs";
+import { sdk } from "./_core/sdk";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -27,11 +29,111 @@ export const appRouter = router({
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    
+    // Email/Password Registration
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email("請輸入有效的電郵地址"),
+        password: z.string().min(8, "密碼至少需要8個字元"),
+        name: z.string().min(1, "請輸入姓名"),
+        phone: z.string().optional(),
+        instagram: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if email already exists
+        const existingUser = await db.getUserByEmail(input.email);
+        if (existingUser) {
+          throw new TRPCError({ code: 'CONFLICT', message: '該電郵地址已被註冊' });
+        }
+        
+        // Hash password
+        const passwordHash = await bcrypt.hash(input.password, 12);
+        
+        // Create user
+        const userId = await db.createUserWithEmail({
+          email: input.email,
+          passwordHash,
+          name: input.name,
+          phone: input.phone,
+          instagram: input.instagram,
+        });
+        
+        // Get the created user
+        const user = await db.getUserById(userId);
+        if (!user) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '建立用戶失敗' });
+        }
+        
+        // Create session token
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || '' });
+        
+        // Set cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
+        });
+        
+        return { success: true, user: { id: user.id, name: user.name, email: user.email } };
+      }),
+    
+    // Email/Password Login
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email("請輸入有效的電郵地址"),
+        password: z.string().min(1, "請輸入密碼"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Find user by email
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '電郵或密碼錯誤' });
+        }
+        
+        // Check if user has password (email login method)
+        if (!user.passwordHash) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '該帳戶使用其他登入方式，請使用 Manus 登入' });
+        }
+        
+        // Verify password
+        const isValidPassword = await bcrypt.compare(input.password, user.passwordHash);
+        if (!isValidPassword) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '電郵或密碼錯誤' });
+        }
+        
+        // Update last signed in
+        await db.updateUserLastSignedIn(user.id);
+        
+        // Create session token
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || '' });
+        
+        // Set cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
+        });
+        
+        return { success: true, user: { id: user.id, name: user.name, email: user.email } };
+      }),
+    
+    // Update user profile
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().optional(),
+        phone: z.string().optional(),
+        instagram: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserProfile(ctx.user.id, input);
+        return { success: true };
+      }),
   }),
 
   // ============ CATEGORIES ============

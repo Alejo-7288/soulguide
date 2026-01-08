@@ -15,11 +15,15 @@ import TeacherSettings from "./pages/TeacherSettings";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import BookingDetail from "./pages/BookingDetail";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/search" component={Search} />
       <Route path="/teacher/:id" component={TeacherDetail} />
       <Route path="/book/:teacherId" component={Booking} />

@@ -16,8 +16,15 @@ import {
   MessageSquare,
   User,
   LogOut,
-  CreditCard
+  CreditCard,
+  Phone,
+  Instagram,
+  Save,
+  Loader2
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
 import { format } from "date-fns";
@@ -30,6 +37,179 @@ const statusLabels: Record<string, { text: string; variant: "default" | "seconda
   cancelled: { text: "已取消", variant: "destructive" },
   refunded: { text: "已退款", variant: "destructive" },
 };
+
+function ProfileSettingsForm({ user }: { user: any }) {
+  const [formData, setFormData] = useState({
+    name: user?.name || "",
+    phone: user?.phone || "",
+    instagram: user?.instagram || "",
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const utils = trpc.useUtils();
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        phone: user.phone || "",
+        instagram: user.instagram || "",
+      });
+    }
+  }, [user]);
+
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("個人資料已更新");
+      setIsEditing(false);
+      utils.auth.me.invalidate();
+    },
+    onError: (error: { message?: string }) => {
+      toast.error(error.message || "更新失敗");
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfileMutation.mutate(formData);
+  };
+
+  return (
+    <div className="elegant-card p-6">
+      <h3 className="text-lg font-medium mb-6 flex items-center gap-2">
+        <User className="w-5 h-5" />
+        個人資料
+      </h3>
+      
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-md">
+        {/* Name */}
+        <div className="space-y-2">
+          <Label htmlFor="name" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            姓名
+          </Label>
+          <Input
+            id="name"
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            disabled={!isEditing}
+            className={!isEditing ? "bg-muted" : ""}
+          />
+        </div>
+
+        {/* Email (Read-only) */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2 text-muted-foreground">
+            電郵地址
+          </Label>
+          <Input
+            type="email"
+            value={user?.email || ""}
+            disabled
+            className="bg-muted"
+          />
+          <p className="text-xs text-muted-foreground">電郵地址無法修改</p>
+        </div>
+
+        {/* Phone */}
+        <div className="space-y-2">
+          <Label htmlFor="phone" className="flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            電話號碼
+          </Label>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="+852 9XXX XXXX"
+            value={formData.phone}
+            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            disabled={!isEditing}
+            className={!isEditing ? "bg-muted" : ""}
+          />
+        </div>
+
+        {/* Instagram */}
+        <div className="space-y-2">
+          <Label htmlFor="instagram" className="flex items-center gap-2">
+            <Instagram className="w-4 h-4" />
+            Instagram
+          </Label>
+          <div className="relative">
+            <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${!isEditing ? "text-muted-foreground" : "text-foreground"}`}>@</span>
+            <Input
+              id="instagram"
+              type="text"
+              placeholder="your_username"
+              value={formData.instagram}
+              onChange={(e) => setFormData(prev => ({ ...prev, instagram: e.target.value.replace(/^@/, "") }))}
+              disabled={!isEditing}
+              className={`pl-8 ${!isEditing ? "bg-muted" : ""}`}
+            />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-4">
+          {isEditing ? (
+            <>
+              <Button
+                type="submit"
+                className="gold-gradient text-foreground hover:opacity-90"
+                disabled={updateProfileMutation.isPending}
+              >
+                {updateProfileMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    儲存中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    儲存變更
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsEditing(false);
+                  setFormData({
+                    name: user?.name || "",
+                    phone: user?.phone || "",
+                    instagram: user?.instagram || "",
+                  });
+                }}
+              >
+                取消
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              編輯資料
+            </Button>
+          )}
+        </div>
+      </form>
+
+      {/* Login Method Info */}
+      <div className="mt-8 pt-6 border-t">
+        <h4 className="text-sm font-medium text-muted-foreground mb-2">帳戶資訊</h4>
+        <div className="text-sm">
+          <p>登入方式：{user?.loginMethod === 'email' ? '電郵/密碼' : 'Manus 帳戶'}</p>
+          <p className="text-muted-foreground">
+            註冊日期：{user?.createdAt ? format(new Date(user.createdAt), "yyyy年M月d日") : "-"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BookingCard({ booking }: { booking: any }) {
   const status = statusLabels[booking.booking.status] || statusLabels.pending;
@@ -379,6 +559,10 @@ export default function UserDashboard() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2">
+              <Settings className="w-4 h-4" />
+              個人設定
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings">
@@ -433,6 +617,10 @@ export default function UserDashboard() {
                 </Link>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <ProfileSettingsForm user={user} />
           </TabsContent>
 
           <TabsContent value="notifications">

@@ -112,6 +112,67 @@ export async function updateUserRole(userId: number, role: "user" | "admin" | "t
   await db.update(users).set({ role }).where(eq(users.id, userId));
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createUserWithEmail(data: {
+  email: string;
+  passwordHash: string;
+  name: string;
+  phone?: string;
+  instagram?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Generate a unique openId for email users
+  const openId = `email_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  
+  const result = await db.insert(users).values({
+    openId,
+    email: data.email,
+    passwordHash: data.passwordHash,
+    name: data.name,
+    phone: data.phone || null,
+    instagram: data.instagram || null,
+    loginMethod: 'email',
+    isEmailVerified: false,
+    lastSignedIn: new Date(),
+  });
+  
+  return result[0].insertId;
+}
+
+export async function updateUserProfile(userId: number, data: {
+  name?: string;
+  phone?: string;
+  instagram?: string;
+  avatarUrl?: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.phone !== undefined) updateData.phone = data.phone;
+  if (data.instagram !== undefined) updateData.instagram = data.instagram;
+  if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+  
+  if (Object.keys(updateData).length > 0) {
+    await db.update(users).set(updateData).where(eq(users.id, userId));
+  }
+}
+
+export async function updateUserLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+}
+
 // ============ CATEGORY FUNCTIONS ============
 export async function getAllCategories() {
   const db = await getDb();

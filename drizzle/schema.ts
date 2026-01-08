@@ -8,10 +8,13 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
+  passwordHash: varchar("passwordHash", { length: 255 }), // For email/password auth
+  loginMethod: varchar("loginMethod", { length: 64 }), // 'manus' | 'email'
   role: mysqlEnum("role", ["user", "admin", "teacher"]).default("user").notNull(),
   avatarUrl: text("avatarUrl"),
   phone: varchar("phone", { length: 20 }),
+  instagram: varchar("instagram", { length: 100 }), // Instagram handle
+  isEmailVerified: boolean("isEmailVerified").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
