@@ -214,17 +214,19 @@ class SDKServer {
 
       if (
         !isNonEmptyString(openId) ||
-        !isNonEmptyString(appId) ||
-        !isNonEmptyString(name)
+        !isNonEmptyString(appId)
       ) {
-        console.warn("[Auth] Session payload missing required fields");
+        console.warn("[Auth] Session payload missing required fields (openId or appId)");
         return null;
       }
+      
+      // name can be empty string for email-registered users
+      const nameStr = typeof name === 'string' ? name : '';
 
       return {
         openId,
         appId,
-        name,
+        name: nameStr,
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
