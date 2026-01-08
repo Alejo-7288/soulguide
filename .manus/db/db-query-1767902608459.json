@@ -1,0 +1,21 @@
+{
+  "query": "SELECT id, openId, name, email, loginMethod, role, phone, instagram, createdAt FROM users WHERE email = 'alejofzj@gmail.com' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user H5RpmqXZJvTQzy4.root --database URnFj7fZh3nmZLbroDwfWk --execute SELECT id, openId, name, email, loginMethod, role, phone, instagram, createdAt FROM users WHERE email = 'alejofzj@gmail.com' LIMIT 1;",
+  "rows": [
+    {
+      "id": "30039",
+      "openId": "email_1767902378417_6opzs7kr5yo",
+      "name": "Yy",
+      "email": "alejofzj@gmail.com",
+      "loginMethod": "email",
+      "role": "user",
+      "phone": "+85265692317",
+      "instagram": "alejonegrolobo",
+      "createdAt": "2026-01-08 19:59:38"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\tloginMethod\trole\tphone\tinstagram\tcreatedAt\n30039\temail_1767902378417_6opzs7kr5yo\tYy\talejofzj@gmail.com\temail\tuser\t+85265692317\talejonegrolobo\t2026-01-08 19:59:38\n",
+  "stderr": "",
+  "execution_time_ms": 1575
+}

@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, openId, name, email, loginMethod, passwordHash, role FROM users WHERE email = 'alejofzj@gmail.com' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user H5RpmqXZJvTQzy4.root --database URnFj7fZh3nmZLbroDwfWk --execute SELECT id, openId, name, email, loginMethod, passwordHash, role FROM users WHERE email = 'alejofzj@gmail.com' LIMIT 1;",
+  "rows": [
+    {
+      "id": "30039",
+      "openId": "email_1767902378417_6opzs7kr5yo",
+      "name": "Yy",
+      "email": "alejofzj@gmail.com",
+      "loginMethod": "email",
+      "passwordHash": "$2b$12$Op2QKRpijvk7K6dOlYmbWO.goRUxGds2rroDik8Iw6XHEFAmrRnb2",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\tloginMethod\tpasswordHash\trole\n30039\temail_1767902378417_6opzs7kr5yo\tYy\talejofzj@gmail.com\temail\t$2b$12$Op2QKRpijvk7K6dOlYmbWO.goRUxGds2rroDik8Iw6XHEFAmrRnb2\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 1504
+}
