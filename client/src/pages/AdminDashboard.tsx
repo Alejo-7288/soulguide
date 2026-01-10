@@ -10,14 +10,21 @@ import UserManagement from '../components/admin/UserManagement';
 import TeacherManagement from '../components/admin/TeacherManagement';
 
 export default function AdminDashboard() {
-  const { data: user, isLoading } = trpc.auth.me.useQuery();
+  const { data: user, isLoading } = trpc.auth.me.useQuery(undefined, { staleTime: 0, gcTime: 0 });
   const logout = trpc.auth.logout.useMutation();
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">加載中...</div>;
   }
 
-  if (!user || user.role !== 'superadmin') {
+  if (!user) {
+    return <div className="flex items-center justify-center min-h-screen">加載中...</div>;
+  }
+
+  // Check if user is superadmin or has the special email
+  const isSuperAdmin = user.role === 'superadmin' || user.email === 'alejonegrolobo@gmail.com';
+  
+  if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

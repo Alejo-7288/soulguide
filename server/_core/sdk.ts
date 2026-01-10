@@ -299,6 +299,12 @@ class SDKServer {
       lastSignedIn: signedInAt,
     });
 
+    // Re-fetch user to get latest data (including role updates)
+    user = await db.getUserByOpenId(sessionUserId);
+    if (!user) {
+      throw ForbiddenError("User not found after update");
+    }
+
     return user;
   }
 }
