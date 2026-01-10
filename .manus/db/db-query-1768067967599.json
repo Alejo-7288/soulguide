@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, name, email FROM users ORDER BY id DESC LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user H5RpmqXZJvTQzy4.root --database URnFj7fZh3nmZLbroDwfWk --execute SELECT id, name, email FROM users ORDER BY id DESC LIMIT 15;",
+  "rows": [
+    {
+      "id": "240049",
+      "name": "李四",
+      "email": "lisi@example.com"
+    },
+    {
+      "id": "240048",
+      "name": "王小明",
+      "email": "wang@example.com"
+    },
+    {
+      "id": "30039",
+      "name": "Yy",
+      "email": "alejofzj@gmail.com"
+    },
+    {
+      "id": "1",
+      "name": "Updated Name",
+      "email": "alejonegrolobo@gmail.com"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\n240049\t李四\tlisi@example.com\n240048\t王小明\twang@example.com\n30039\tYy\talejofzj@gmail.com\n1\tUpdated Name\talejonegrolobo@gmail.com\n",
+  "stderr": "",
+  "execution_time_ms": 1521
+}

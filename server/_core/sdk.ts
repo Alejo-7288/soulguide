@@ -5,6 +5,8 @@ import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
+import { users } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import * as db from "../db";
 import { ENV } from "./env";
 import type {
@@ -294,10 +296,18 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
+    // Update only lastSignedIn without overwriting other fields like role
+    const db_instance = await db.getDb();
+    if (db_instance) {
+      try {
+        await db_instance
+          .update(users)
+          .set({ lastSignedIn: signedInAt })
+          .where(eq(users.openId, sessionUserId));
+      } catch (error) {
+        console.warn("[Auth] Failed to update lastSignedIn:", error);
+      }
+    }
 
     // Re-fetch user to get latest data (including role updates)
     user = await db.getUserByOpenId(sessionUserId);
@@ -305,6 +315,13 @@ class SDKServer {
       throw ForbiddenError("User not found after update");
     }
 
+    // Set owner's role to superadmin
+    if (user.openId === ENV.ownerOpenId && user.role !== 'superadmin') {
+      user.role = 'superadmin';
+      console.log('[Auth] Set owner role to superadmin:', { email: user.email });
+    }
+
+    console.log('[Auth] User fetched after update:', { email: user.email, role: user.role });
     return user;
   }
 }

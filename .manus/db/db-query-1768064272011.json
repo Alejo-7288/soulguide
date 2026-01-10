@@ -1,0 +1,42 @@
+{
+  "query": "SELECT * FROM users ORDER BY id DESC LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user H5RpmqXZJvTQzy4.root --database URnFj7fZh3nmZLbroDwfWk --execute SELECT * FROM users ORDER BY id DESC LIMIT 5",
+  "rows": [
+    {
+      "id": "30039",
+      "openId": "email_1767902378417_6opzs7kr5yo",
+      "name": "Yy",
+      "email": "alejofzj@gmail.com",
+      "loginMethod": "email",
+      "role": "teacher",
+      "createdAt": "2026-01-08 19:59:38",
+      "updatedAt": "2026-01-10 06:17:50",
+      "lastSignedIn": "2026-01-10 06:17:51",
+      "avatarUrl": "NULL",
+      "phone": "+85265692317",
+      "passwordHash": "$2b$12$Op2QKRpijvk7K6dOlYmbWO.goRUxGds2rroDik8Iw6XHEFAmrRnb2",
+      "instagram": "alejonegrolobo",
+      "isEmailVerified": "0"
+    },
+    {
+      "id": "1",
+      "openId": "Fv7sP5FouamafuZiJdKSQN",
+      "name": "Updated Name",
+      "email": "alejonegrolobo@gmail.com",
+      "loginMethod": "google",
+      "role": "admin",
+      "createdAt": "2026-01-08 19:12:58",
+      "updatedAt": "2026-01-10 16:57:39",
+      "lastSignedIn": "2026-01-10 16:57:39",
+      "avatarUrl": "NULL",
+      "phone": "0987654321",
+      "passwordHash": "NULL",
+      "instagram": "updated_ig",
+      "isEmailVerified": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\tloginMethod\trole\tcreatedAt\tupdatedAt\tlastSignedIn\tavatarUrl\tphone\tpasswordHash\tinstagram\tisEmailVerified\n30039\temail_1767902378417_6opzs7kr5yo\tYy\talejofzj@gmail.com\temail\tteacher\t2026-01-08 19:59:38\t2026-01-10 06:17:50\t2026-01-10 06:17:51\tNULL\t+85265692317\t$2b$12$Op2QKRpijvk7K6dOlYmbWO.goRUxGds2rroDik8Iw6XHEFAmrRnb2\talejonegrolobo\t0\n1\tFv7sP5FouamafuZiJdKSQN\tUpdated Name\talejonegrolobo@gmail.com\tgoogle\tadmin\t2026-01-08 19:12:58\t2026-01-10 16:57:39\t2026-01-10 16:57:39\tNULL\t0987654321\tNULL\tupdated_ig\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1583
+}

@@ -1,0 +1,26 @@
+{
+  "query": "SELECT * FROM users WHERE id = 1 LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user H5RpmqXZJvTQzy4.root --database URnFj7fZh3nmZLbroDwfWk --execute SELECT * FROM users WHERE id = 1 LIMIT 1;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "Fv7sP5FouamafuZiJdKSQN",
+      "name": "Updated Name",
+      "email": "alejonegrolobo@gmail.com",
+      "loginMethod": "google",
+      "role": "admin",
+      "createdAt": "2026-01-08 19:12:58",
+      "updatedAt": "2026-01-10 17:45:04",
+      "lastSignedIn": "2026-01-10 17:45:05",
+      "avatarUrl": "NULL",
+      "phone": "0987654321",
+      "passwordHash": "NULL",
+      "instagram": "updated_ig",
+      "isEmailVerified": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\tloginMethod\trole\tcreatedAt\tupdatedAt\tlastSignedIn\tavatarUrl\tphone\tpasswordHash\tinstagram\tisEmailVerified\n1\tFv7sP5FouamafuZiJdKSQN\tUpdated Name\talejonegrolobo@gmail.com\tgoogle\tadmin\t2026-01-08 19:12:58\t2026-01-10 17:45:04\t2026-01-10 17:45:05\tNULL\t0987654321\tNULL\tupdated_ig\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1493
+}

@@ -18,6 +18,7 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 // SuperAdmin-only procedure
 const superadminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  console.log('[SuperAdmin Check] User role:', ctx.user?.role, 'Email:', ctx.user?.email);
   if (ctx.user.role !== 'superadmin') {
     throw new TRPCError({ code: 'FORBIDDEN', message: '需要超級管理員權限' });
   }
@@ -977,6 +978,48 @@ export const appRouter = router({
     exportTeachers: superadminProcedure
       .query(async () => {
         return db.getAllTeachersForExport();
+      }),
+    
+    createTeacher: superadminProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        title: z.string().optional(),
+        region: z.string().optional(),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const existingUser = await db.getUserByEmail(input.email);
+        if (existingUser) {
+          throw new TRPCError({ code: 'CONFLICT', message: '該電郵地址已存在' });
+        }
+        
+        const userId = await db.createUserWithoutPassword({
+          email: input.email,
+          name: input.name,
+          role: 'teacher',
+          phone: input.phone,
+        });
+        
+        await db.createTeacherProfile({
+          userId,
+          displayName: input.name,
+          title: input.title,
+          region: input.region,
+        });
+        
+        return { success: true, userId };
+      }),
+    
+    deleteTeacher: superadminProcedure
+      .input(z.string())
+      .mutation(async ({ input: teacherId }) => {
+        const profileId = parseInt(teacherId, 10);
+        if (isNaN(profileId)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid teacher ID' });
+        }
+        await db.deleteUser(profileId);
+        return { success: true };
       }),
   }),
 });

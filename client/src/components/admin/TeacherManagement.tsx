@@ -3,10 +3,22 @@ import { trpc } from '../../lib/trpc';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Download, Trash2, Star } from 'lucide-react';
+import { Download, Trash2, Star, Plus } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 export default function TeacherManagement() {
   const [page, setPage] = useState(1);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '' });
   
   const { data: teachersData, isLoading, refetch } = trpc.superadmin.getAllTeachers.useQuery({
     page,
@@ -15,6 +27,7 @@ export default function TeacherManagement() {
 
   const { data: exportData } = trpc.superadmin.exportTeachers.useQuery();
   const deleteUser = trpc.superadmin.deleteUser.useMutation();
+  const createTeacher = trpc.superadmin.createTeacher.useMutation();
 
   const handleDelete = async (userId: number) => {
     if (confirm('確定要刪除此老師嗎？')) {
@@ -24,6 +37,27 @@ export default function TeacherManagement() {
       } catch (error) {
         console.error('刪除老師失敗:', error);
       }
+    }
+  };
+
+  const handleAddTeacher = async () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      alert('請填寫老師名稱和電郵');
+      return;
+    }
+
+    try {
+      await createTeacher.mutateAsync({
+        name: formData.name,
+        email: formData.email,
+      });
+      alert('新增老師成功');
+      setFormData({ name: '', email: '' });
+      setIsDialogOpen(false);
+      refetch();
+    } catch (error) {
+      console.error('新增老師失敗:', error);
+      alert(`新增老師失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
     }
   };
 
@@ -60,7 +94,48 @@ export default function TeacherManagement() {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              新增老師
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>新增老師</DialogTitle>
+              <DialogDescription>
+                填寫老師的基本信息
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">老師名稱</Label>
+                <Input
+                  id="name"
+                  placeholder="輸入老師名稱"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">電郵地址</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="輸入電郵地址"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <Button onClick={handleAddTeacher} disabled={createTeacher.isPending}>
+                {createTeacher.isPending ? '新增中...' : '新增'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Button variant="outline" onClick={handleExport} className="gap-2">
           <Download className="w-4 h-4" />
           下載
