@@ -10,15 +10,23 @@ import { sdk } from "./_core/sdk";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== 'admin') {
+  if (ctx.user.role !== 'admin' && ctx.user.role !== 'superadmin') {
     throw new TRPCError({ code: 'FORBIDDEN', message: '需要管理員權限' });
+  }
+  return next({ ctx });
+});
+
+// SuperAdmin-only procedure
+const superadminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== 'superadmin') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: '需要超級管理員權限' });
   }
   return next({ ctx });
 });
 
 // Teacher-only procedure
 const teacherProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== 'teacher' && ctx.user.role !== 'admin') {
+  if (ctx.user.role !== 'teacher' && ctx.user.role !== 'admin' && ctx.user.role !== 'superadmin') {
     throw new TRPCError({ code: 'FORBIDDEN', message: '需要老師權限' });
   }
   return next({ ctx });
@@ -887,6 +895,88 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await db.updateTeacherProfile(input.teacherProfileId, { isVerified: input.isVerified });
         return { success: true };
+      }),
+  }),
+  
+  superadmin: router({
+    getAllUsers: superadminProcedure
+      .input(z.object({
+        page: z.number().default(1),
+        limit: z.number().default(20),
+        role: z.enum(['user', 'teacher', 'admin', 'superadmin']).optional(),
+      }))
+      .query(async ({ input }) => {
+        return db.getAllUsers(input.page, input.limit, input.role);
+      }),
+    
+    getAllTeachers: superadminProcedure
+      .input(z.object({
+        page: z.number().default(1),
+        limit: z.number().default(20),
+      }))
+      .query(async ({ input }) => {
+        return db.getAllTeachers(input.page, input.limit);
+      }),
+    
+    createUser: superadminProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string(),
+        role: z.enum(['user', 'teacher', 'admin', 'superadmin']).default('user'),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const existingUser = await db.getUserByEmail(input.email);
+        if (existingUser) {
+          throw new TRPCError({ code: 'CONFLICT', message: '該電郵地址已存在' });
+        }
+        
+        const userId = await db.createUserWithoutPassword({
+          email: input.email,
+          name: input.name,
+          role: input.role,
+          phone: input.phone,
+        });
+        
+        return { success: true, userId };
+      }),
+    
+    updateUser: superadminProcedure
+      .input(z.object({
+        userId: z.number(),
+        email: z.string().email().optional(),
+        name: z.string().optional(),
+        role: z.enum(['user', 'teacher', 'admin', 'superadmin']).optional(),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { userId, ...updates } = input;
+        await db.updateUser(userId, updates);
+        return { success: true };
+      }),
+    
+    deleteUser: superadminProcedure
+      .input(z.object({
+        userId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.deleteUser(input.userId);
+        return { success: true };
+      }),
+    
+    getAnalytics: superadminProcedure
+      .query(async () => {
+        return db.getAnalyticsData();
+      }),
+    
+    exportUsers: superadminProcedure
+      .query(async () => {
+        return db.getAllUsersForExport();
+      }),
+    
+    exportTeachers: superadminProcedure
+      .query(async () => {
+        return db.getAllTeachersForExport();
       }),
   }),
 });

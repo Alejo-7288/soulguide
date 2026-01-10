@@ -29,6 +29,13 @@
       "when": 1767901725288,
       "tag": "0003_purple_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1767983497759,
+      "tag": "0004_old_slipstream",
+      "breakpoints": true
     }
   ]
 }

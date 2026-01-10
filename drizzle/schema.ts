@@ -10,7 +10,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   passwordHash: varchar("passwordHash", { length: 255 }), // For email/password auth
   loginMethod: varchar("loginMethod", { length: 64 }), // 'manus' | 'email'
-  role: mysqlEnum("role", ["user", "admin", "teacher"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "teacher", "superadmin"]).default("user").notNull(),
   avatarUrl: text("avatarUrl"),
   phone: varchar("phone", { length: 20 }),
   instagram: varchar("instagram", { length: 100 }), // Instagram handle

@@ -17,6 +17,7 @@ import PaymentCancel from "./pages/PaymentCancel";
 import BookingDetail from "./pages/BookingDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/book/:teacherId" component={Booking} />
       <Route path="/book/:teacherId/:serviceId" component={Booking} />
       <Route path="/dashboard" component={UserDashboard} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/payment/success" component={PaymentSuccess} />
       <Route path="/payment/cancel" component={PaymentCancel} />
       <Route path="/booking/:bookingId" component={BookingDetail} />

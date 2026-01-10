@@ -970,3 +970,192 @@ export async function getTeacherBookingStats(teacherProfileId: number) {
     thisMonth: thisMonthCount[0]?.count || 0,
   };
 }
+
+
+// ============ SUPERADMIN FUNCTIONS ============
+
+export async function getAllUsers(page: number = 1, limit: number = 20, role?: string) {
+  const db = await getDb();
+  if (!db) return { users: [], total: 0 };
+
+  const offset = (page - 1) * limit;
+  
+  const whereClause = role ? eq(users.role, role as any) : undefined;
+  
+  const data = await db
+    .select()
+    .from(users)
+    .where(whereClause)
+    .limit(limit)
+    .offset(offset);
+  
+  const countResult = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(users)
+    .where(whereClause);
+  
+  return {
+    users: data,
+    total: countResult[0]?.count || 0,
+  };
+}
+
+export async function getAllTeachers(page: number = 1, limit: number = 20) {
+  const db = await getDb();
+  if (!db) return { teachers: [], total: 0 };
+
+  const offset = (page - 1) * limit;
+  
+  const data = await db
+    .select({
+      profile: teacherProfiles,
+      user: users,
+    })
+    .from(teacherProfiles)
+    .innerJoin(users, eq(teacherProfiles.userId, users.id))
+    .limit(limit)
+    .offset(offset);
+
+  const countResult = await db.select({ count: sql<number>`COUNT(*)` }).from(teacherProfiles);
+  
+  return {
+    teachers: data,
+    total: countResult[0]?.count || 0,
+  };
+}
+
+export async function createUserWithoutPassword(input: {
+  email: string;
+  name: string;
+  role: string;
+  phone?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Generate a unique openId
+  const openId = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  const result = await db.insert(users).values({
+    openId,
+    email: input.email,
+    name: input.name,
+    role: input.role as any,
+    phone: input.phone,
+    loginMethod: 'email',
+  });
+
+  return result[0]?.insertId || 0;
+}
+
+export async function updateUser(userId: number, updates: Record<string, any>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(users).set(updates).where(eq(users.id, userId));
+}
+
+export async function deleteUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Delete related data first
+  await db.delete(teacherProfiles).where(eq(teacherProfiles.userId, userId));
+  await db.delete(notifications).where(eq(notifications.userId, userId));
+  await db.delete(bookings).where(eq(bookings.userId, userId));
+  await db.delete(reviews).where(eq(reviews.userId, userId));
+  await db.delete(favorites).where(eq(favorites.userId, userId));
+  
+  // Delete user
+  await db.delete(users).where(eq(users.id, userId));
+}
+
+export async function getAnalyticsData() {
+  const db = await getDb();
+  if (!db) return {};
+
+  // Get total users
+  const totalUsersResult = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
+  const totalUsers = totalUsersResult[0]?.count || 0;
+
+  // Get total teachers
+  const totalTeachersResult = await db.select({ count: sql<number>`COUNT(*)` }).from(teacherProfiles);
+  const totalTeachers = totalTeachersResult[0]?.count || 0;
+
+  // Get total bookings
+  const totalBookingsResult = await db.select({ count: sql<number>`COUNT(*)` }).from(bookings);
+  const totalBookings = totalBookingsResult[0]?.count || 0;
+
+  // Get total reviews
+  const totalReviewsResult = await db.select({ count: sql<number>`COUNT(*)` }).from(reviews);
+  const totalReviews = totalReviewsResult[0]?.count || 0;
+
+  // Get users by role
+  const usersByRole = await db
+    .select({
+      role: users.role,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(users)
+    .groupBy(users.role);
+
+  // Get bookings by status (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const bookingsByStatus = await db
+    .select({
+      status: bookings.status,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(bookings)
+    .where(sql`${bookings.createdAt} >= ${thirtyDaysAgo}`)
+    .groupBy(bookings.status);
+
+  return {
+    totalUsers,
+    totalTeachers,
+    totalBookings,
+    totalReviews,
+    usersByRole,
+    bookingsByStatus,
+  };
+}
+
+export async function getAllUsersForExport() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    phone: users.phone,
+    instagram: users.instagram,
+    createdAt: users.createdAt,
+    lastSignedIn: users.lastSignedIn,
+  }).from(users);
+}
+
+export async function getAllTeachersForExport() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select({
+      userId: users.id,
+      userName: users.name,
+      userEmail: users.email,
+      displayName: teacherProfiles.displayName,
+      title: teacherProfiles.title,
+      region: teacherProfiles.region,
+      totalBookings: teacherProfiles.totalBookings,
+      totalReviews: teacherProfiles.totalReviews,
+      averageRating: teacherProfiles.averageRating,
+      isVerified: teacherProfiles.isVerified,
+      createdAt: teacherProfiles.createdAt,
+    })
+    .from(teacherProfiles)
+    .innerJoin(users, eq(teacherProfiles.userId, users.id));
+}
