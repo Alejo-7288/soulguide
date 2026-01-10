@@ -883,6 +883,13 @@ export default function UserDashboard() {
             <Link href="/search">
               <Button variant="ghost" size="sm">搜尋老師</Button>
             </Link>
+            {user?.role === 'superadmin' && (
+              <Link href="/admin">
+                <Button variant="ghost" size="sm" className="text-primary font-medium">
+                  ⚙️ 管理員後台
+                </Button>
+              </Link>
+            )}
             <Button variant="ghost" size="sm" onClick={() => logout()}>
               <LogOut className="w-4 h-4 mr-2" />
               登出
