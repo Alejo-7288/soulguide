@@ -11,9 +11,13 @@ import {
   reviews, Review, InsertReview,
   notifications, Notification, InsertNotification,
   favorites, Favorite, InsertFavorite,
+<<<<<<< Updated upstream
   teacherVerifications, TeacherVerification, InsertTeacherVerification,
   verificationTypes, VerificationType, InsertVerificationType,
   verificationHistory, VerificationHistory, InsertVerificationHistory
+=======
+  teacherApprovalHistory, TeacherApprovalHistory, InsertTeacherApprovalHistory
+>>>>>>> Stashed changes
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -255,8 +259,11 @@ export async function searchTeachers(params: {
     .where(eq(teacherProfiles.isActive, true))
     .$dynamic();
 
-  // Apply filters
-  const conditions = [eq(teacherProfiles.isActive, true)];
+  // Apply filters - 只顯示已批准的師傅
+  const conditions = [
+    eq(teacherProfiles.isActive, true),
+    eq(teacherProfiles.status, 'approved')
+  ];
   
   if (region) {
     conditions.push(eq(teacherProfiles.region, region));
@@ -1165,6 +1172,7 @@ export async function getAllTeachersForExport() {
     .innerJoin(users, eq(teacherProfiles.userId, users.id));
 }
 
+<<<<<<< Updated upstream
 // ============ VERIFICATION FUNCTIONS ============
 
 /**
@@ -1446,4 +1454,165 @@ export async function createVerificationType(data: {
     console.error("[Database] Failed to create verification type:", error);
     throw error;
   }
+=======
+// ============ TEACHER APPROVAL FUNCTIONS ============
+
+/**
+ * 獲取待審核師傅列表
+ */
+export async function getPendingTeachers(page: number = 1, limit: number = 10) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const offset = (page - 1) * limit;
+
+  const [teachersData, totalData] = await Promise.all([
+    db
+      .select({
+        id: teacherProfiles.id,
+        userId: teacherProfiles.userId,
+        displayName: teacherProfiles.displayName,
+        title: teacherProfiles.title,
+        bio: teacherProfiles.bio,
+        avatarUrl: teacherProfiles.avatarUrl,
+        region: teacherProfiles.region,
+        contactEmail: teacherProfiles.contactEmail,
+        contactPhone: teacherProfiles.contactPhone,
+        status: teacherProfiles.status,
+        submittedAt: teacherProfiles.submittedAt,
+        userName: users.name,
+        userEmail: users.email,
+      })
+      .from(teacherProfiles)
+      .innerJoin(users, eq(teacherProfiles.userId, users.id))
+      .where(eq(teacherProfiles.status, 'pending'))
+      .orderBy(desc(teacherProfiles.submittedAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(teacherProfiles)
+      .where(eq(teacherProfiles.status, 'pending'))
+  ]);
+
+  const total = totalData[0]?.count ?? 0;
+
+  return {
+    teachers: teachersData,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+/**
+ * 批准師傅申請
+ */
+export async function approveTeacher(teacherId: number, approvedBy: number, approvalNotes?: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 更新師傅狀態
+  await db
+    .update(teacherProfiles)
+    .set({
+      status: 'approved',
+      approvedAt: new Date(),
+      approvedBy,
+    })
+    .where(eq(teacherProfiles.id, teacherId));
+
+  // 記錄審核歷史
+  await db.insert(teacherApprovalHistory).values({
+    teacherProfileId: teacherId,
+    status: 'approved',
+    reviewedBy: approvedBy,
+    reviewNotes: approvalNotes,
+  });
+
+  return { success: true };
+}
+
+/**
+ * 拒絕師傅申請
+ */
+export async function rejectTeacher(teacherId: number, reviewedBy: number, rejectionReason: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 更新師傅狀態
+  await db
+    .update(teacherProfiles)
+    .set({
+      status: 'rejected',
+      rejectionReason,
+    })
+    .where(eq(teacherProfiles.id, teacherId));
+
+  // 記錄審核歷史
+  await db.insert(teacherApprovalHistory).values({
+    teacherProfileId: teacherId,
+    status: 'rejected',
+    reviewedBy,
+    reviewNotes: rejectionReason,
+  });
+
+  return { success: true };
+}
+
+/**
+ * 獲取師傅審核狀態
+ */
+export async function getTeacherApprovalStatus(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const profile = await db
+    .select({
+      status: teacherProfiles.status,
+      rejectionReason: teacherProfiles.rejectionReason,
+      approvedAt: teacherProfiles.approvedAt,
+      submittedAt: teacherProfiles.submittedAt,
+    })
+    .from(teacherProfiles)
+    .where(eq(teacherProfiles.userId, userId))
+    .limit(1);
+
+  return profile[0] || null;
+}
+
+/**
+ * 獲取師傅審核歷史
+ */
+export async function getTeacherApprovalHistory(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const history = await db
+    .select({
+      id: teacherApprovalHistory.id,
+      status: teacherApprovalHistory.status,
+      reviewNotes: teacherApprovalHistory.reviewNotes,
+      createdAt: teacherApprovalHistory.createdAt,
+      reviewerName: users.name,
+      reviewerEmail: users.email,
+    })
+    .from(teacherApprovalHistory)
+    .innerJoin(users, eq(teacherApprovalHistory.reviewedBy, users.id))
+    .where(eq(teacherApprovalHistory.teacherProfileId, teacherProfileId))
+    .orderBy(desc(teacherApprovalHistory.createdAt));
+
+  return history;
+>>>>>>> Stashed changes
 }

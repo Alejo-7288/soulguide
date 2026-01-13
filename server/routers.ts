@@ -271,6 +271,7 @@ export const appRouter = router({
       return db.getDistinctRegions();
     }),
     
+<<<<<<< Updated upstream
     uploadVerification: protectedProcedure
       .input(z.object({
         verificationTypeId: z.number(),
@@ -332,6 +333,12 @@ export const appRouter = router({
       .query(async () => {
         return db.getVerificationTypes();
       })
+=======
+    getApprovalStatus: protectedProcedure.query(async ({ ctx }) => {
+      const status = await db.getTeacherApprovalStatus(ctx.user.id);
+      return status;
+    }),
+>>>>>>> Stashed changes
   }),
 
   // ============ TEACHER DASHBOARD ============
@@ -1084,6 +1091,7 @@ export const appRouter = router({
         return { success: true };
       }),
     
+<<<<<<< Updated upstream
     getPendingVerifications: superadminProcedure
       .input(z.object({
         page: z.number().default(1),
@@ -1143,6 +1151,37 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return db.createVerificationType(input);
       })
+=======
+    // 審核系統
+    getPendingTeachers: superadminProcedure
+      .input(z.object({
+        page: z.number().default(1),
+        limit: z.number().default(10),
+      }))
+      .query(async ({ input }) => {
+        return db.getPendingTeachers(input.page, input.limit);
+      }),
+    
+    approveTeacher: superadminProcedure
+      .input(z.object({
+        teacherId: z.number(),
+        approvalNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await db.approveTeacher(input.teacherId, ctx.user.id, input.approvalNotes);
+        return { success: true, message: '師傅已批准' };
+      }),
+    
+    rejectTeacher: superadminProcedure
+      .input(z.object({
+        teacherId: z.number(),
+        rejectionReason: z.string().min(1, '請提供拒絕原因'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await db.rejectTeacher(input.teacherId, ctx.user.id, input.rejectionReason);
+        return { success: true, message: '師傅申請已拒絕' };
+      }),
+>>>>>>> Stashed changes
   }),
 });
 

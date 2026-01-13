@@ -4,11 +4,19 @@ import { trpc } from '../lib/trpc';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+<<<<<<< Updated upstream
 import { LogOut, Users, BarChart3, Download, Upload, Shield } from 'lucide-react';
 import AdminAnalytics from '../components/admin/AdminAnalytics';
 import UserManagement from '../components/admin/UserManagement';
 import TeacherManagement from '../components/admin/TeacherManagement';
 import { AdminVerificationReview } from '../components/AdminVerificationReview';
+=======
+import { LogOut, Users, BarChart3, Download, Upload, CheckSquare } from 'lucide-react';
+import AdminAnalytics from '../components/admin/AdminAnalytics';
+import UserManagement from '../components/admin/UserManagement';
+import TeacherManagement from '../components/admin/TeacherManagement';
+import { TeacherApprovalPanel } from '../components/admin/TeacherApprovalPanel';
+>>>>>>> Stashed changes
 
 export default function AdminDashboard() {
   const { data: user, isLoading } = trpc.auth.me.useQuery(undefined, { staleTime: 0, gcTime: 0 });
@@ -87,6 +95,10 @@ export default function AdminDashboard() {
               <BarChart3 className="w-4 h-4" />
               網站分析
             </TabsTrigger>
+            <TabsTrigger value="approval" className="gap-2">
+              <CheckSquare className="w-4 h-4" />
+              師傅審核
+            </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
               用戶管理
@@ -104,6 +116,11 @@ export default function AdminDashboard() {
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
             <AdminAnalytics />
+          </TabsContent>
+
+          {/* Approval Tab */}
+          <TabsContent value="approval" className="space-y-6">
+            <TeacherApprovalPanel />
           </TabsContent>
 
           {/* Users Tab */}

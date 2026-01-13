@@ -12,6 +12,7 @@ import UserDashboard from "./pages/UserDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherRegister from "./pages/TeacherRegister";
 import TeacherSettings from "./pages/TeacherSettings";
+import TeacherApprovalStatus from "./pages/TeacherApprovalStatus";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import BookingDetail from "./pages/BookingDetail";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/teacher/dashboard" component={TeacherDashboard} />
       <Route path="/teacher/register" component={TeacherRegister} />
       <Route path="/teacher/settings" component={TeacherSettings} />
+      <Route path="/teacher/approval-status" component={TeacherApprovalStatus} />
       <Route path="/teacher/:id" component={TeacherDetail} />
       <Route path="/book/:teacherId" component={Booking} />
       <Route path="/book/:teacherId/:serviceId" component={Booking} />

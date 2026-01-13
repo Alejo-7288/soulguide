@@ -69,6 +69,12 @@ export const teacherProfiles = mysqlTable("teacher_profiles", {
   isVerified: boolean("isVerified").default(false).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
+  // Approval system
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "suspended"]).default("pending").notNull(),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  approvedAt: timestamp("approvedAt"),
+  approvedBy: int("approvedBy"),
+  rejectionReason: varchar("rejectionReason", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -210,6 +216,7 @@ export type Favorite = typeof favorites.$inferSelect;
 export type InsertFavorite = typeof favorites.$inferInsert;
 
 /**
+<<<<<<< Updated upstream
  * Verification types (e.g., "營業執照", "執業證書", etc.)
  */
 export const verificationTypes = mysqlTable("verification_types", {
@@ -263,3 +270,18 @@ export const verificationHistory = mysqlTable("verification_history", {
 
 export type VerificationHistory = typeof verificationHistory.$inferSelect;
 export type InsertVerificationHistory = typeof verificationHistory.$inferInsert;
+=======
+ * Teacher approval history
+ */
+export const teacherApprovalHistory = mysqlTable("teacher_approval_history", {
+  id: int("id").autoincrement().primaryKey(),
+  teacherProfileId: int("teacherProfileId").notNull(),
+  status: varchar("status", { length: 50 }).notNull(),
+  reviewedBy: int("reviewedBy").notNull(),
+  reviewNotes: text("reviewNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type TeacherApprovalHistory = typeof teacherApprovalHistory.$inferSelect;
+export type InsertTeacherApprovalHistory = typeof teacherApprovalHistory.$inferInsert;
+>>>>>>> Stashed changes

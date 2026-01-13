@@ -316,45 +316,41 @@ export default function TeacherRegister() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="elegant-card max-w-lg w-full text-center">
           <CardHeader>
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-12 h-12 text-green-500" />
+            <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-12 h-12 text-blue-500" />
             </div>
-            <CardTitle className="text-2xl">恭喜！申請成功！</CardTitle>
+            <CardTitle className="text-2xl">申請已提交！</CardTitle>
             <CardDescription className="text-base">
-              您的老師帳戶已成功建立，現在可以開始設定服務項目了
+              您的師傅申請已成功提交給管理員審核
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="bg-muted/50 rounded-lg p-4 text-left">
-              <h4 className="font-medium mb-3">接下來您可以：</h4>
+              <h4 className="font-medium mb-3">審核流程說明：</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  設定您的服務項目和收費
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  管理員將在 1-2 個工作日內審核您的申請
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  設定可預約的時間
+                  <CheckCircle className="w-4 h-4 text-blue-500" />
+                  審核通過後，您將可以開始設定服務項目
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  完善個人資料和照片
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  開始接受客戶預約
+                  <Mail className="w-4 h-4 text-blue-500" />
+                  審核結果將透過電郵通知您
                 </li>
               </ul>
             </div>
             <div className="flex flex-col gap-3">
-              <Link href="/teacher/dashboard">
+              <Link href="/teacher/approval-status">
                 <Button className="w-full gold-gradient text-foreground hover:opacity-90">
-                  前往老師後台
+                  查看審核狀態
                 </Button>
               </Link>
-              <Link href="/teacher/settings">
+              <Link href="/">
                 <Button variant="outline" className="w-full">
-                  設定服務項目
+                  返回首頁
                 </Button>
               </Link>
             </div>
