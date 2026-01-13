@@ -41,8 +41,10 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Wallet
+  Wallet,
+  Shield
 } from "lucide-react";
+import { TeacherVerificationUpload } from "@/components/TeacherVerificationUpload";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
@@ -904,6 +906,10 @@ export default function TeacherDashboard() {
               <Users className="w-4 h-4" />
               客戶管理
             </TabsTrigger>
+            <TabsTrigger value="verifications" className="gap-2">
+              <Shield className="w-4 h-4" />
+              認證管理
+            </TabsTrigger>
           </TabsList>
 
           {/* Bookings Tab */}
@@ -1065,6 +1071,11 @@ export default function TeacherDashboard() {
                 <p className="text-muted-foreground">當有用戶預約您的服務後，會在這裡顯示</p>
               </div>
             )}
+          </TabsContent>
+          
+          {/* Verifications Tab */}
+          <TabsContent value="verifications">
+            <TeacherVerificationUpload />
           </TabsContent>
         </Tabs>
       </div>

@@ -208,3 +208,58 @@ export const favorites = mysqlTable("favorites", {
 
 export type Favorite = typeof favorites.$inferSelect;
 export type InsertFavorite = typeof favorites.$inferInsert;
+
+/**
+ * Verification types (e.g., "營業執照", "執業證書", etc.)
+ */
+export const verificationTypes = mysqlTable("verification_types", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  isRequired: boolean("isRequired").default(false).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type VerificationType = typeof verificationTypes.$inferSelect;
+export type InsertVerificationType = typeof verificationTypes.$inferInsert;
+
+/**
+ * Teacher verifications (credentials, licenses, certificates)
+ */
+export const teacherVerifications = mysqlTable("teacher_verifications", {
+  id: int("id").autoincrement().primaryKey(),
+  teacherProfileId: int("teacherProfileId").notNull(),
+  verificationTypeId: int("verificationTypeId").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "expired"]).default("pending").notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileSize: int("fileSize").notNull(), // in bytes
+  fileType: varchar("fileType", { length: 100 }).notNull(), // MIME type
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedBy: int("reviewedBy"), // admin user ID
+  reviewNotes: text("reviewNotes"),
+  rejectionReason: text("rejectionReason"),
+  expiresAt: timestamp("expiresAt"), // optional expiration date
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TeacherVerification = typeof teacherVerifications.$inferSelect;
+export type InsertTeacherVerification = typeof teacherVerifications.$inferInsert;
+
+/**
+ * Verification history (audit trail)
+ */
+export const verificationHistory = mysqlTable("verification_history", {
+  id: int("id").autoincrement().primaryKey(),
+  verificationId: int("verificationId").notNull(),
+  status: varchar("status", { length: 50 }).notNull(),
+  changedBy: int("changedBy").notNull(), // user ID who made the change
+  notes: text("notes"),
+  changedAt: timestamp("changedAt").defaultNow().notNull(),
+});
+
+export type VerificationHistory = typeof verificationHistory.$inferSelect;
+export type InsertVerificationHistory = typeof verificationHistory.$inferInsert;

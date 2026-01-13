@@ -162,3 +162,19 @@
 - [ ] 實現新增老師表單（姓名、頭銜、地區、分類等）
 - [ ] 添加新增老師 API 端點
 - [ ] 測試新增老師功能
+
+
+## 教師認證系統開發
+- [x] 設計認證系統數據庫架構（verification_types、teacher_verifications、verification_history 表）
+- [x] 創建數據庫遷移文件（0005_lonely_zombie.sql）
+- [x] 實現數據庫操作函數（10 個函數在 db.ts 中）
+- [x] 實現 tRPC API 路由（教師端 4 個端點，超級管理員端 5 個端點）
+- [x] 創建前端老師認證上傳組件（TeacherVerificationUpload.tsx）
+- [x] 創建前端超級管理員認證審核組件（AdminVerificationReview.tsx）
+- [x] 創建認證列表展示組件（VerificationList.tsx）
+- [x] 在老師儀表板中添加認證管理標籤
+- [x] 在超級管理員後台中添加認證審核標籤
+- [x] 編寫認證系統單元測試（24 個測試全部通過）
+- [ ] 集成測試和端到端測試
+- [ ] 前端 UI 測試和用戶交互驗證
+- [ ] 部署到生產環境
