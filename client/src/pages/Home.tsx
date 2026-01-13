@@ -129,10 +129,10 @@ function CategoriesSection() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {displayCategories.map((category) => (
-            <Link key={category.id} href={`/search?category=${category.slug}`}>
+            <Link key={category.id} href={`/search?category=${category.id}`}>
               <div className="elegant-card p-6 text-center cursor-pointer group">
                 <span className="text-4xl mb-4 block group-hover:scale-110 transition-transform">
-                  {categoryIcons[category.slug] || "✨"}
+                  {categoryIcons[category.slug || ""] || "✨"}
                 </span>
                 <h3 className="font-medium text-lg mb-2">{category.name}</h3>
                 <p className="text-sm text-muted-foreground line-clamp-2">

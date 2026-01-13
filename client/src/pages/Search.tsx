@@ -101,8 +101,12 @@ export default function Search() {
   const { data: categories } = trpc.categories.list.useQuery();
   const { data: regions } = trpc.teachers.regions.useQuery();
 
+  // Parse categoryId safely to avoid NaN
+  const parsedCategoryId = selectedCategory !== "all" ? parseInt(selectedCategory) : undefined;
+  const validCategoryId = !isNaN(parsedCategoryId || NaN) ? parsedCategoryId : undefined;
+
   const { data: searchResults, isLoading } = trpc.teachers.search.useQuery({
-    categoryId: selectedCategory !== "all" ? parseInt(selectedCategory) : undefined,
+    categoryId: validCategoryId,
     region: selectedRegion !== "all" ? selectedRegion : undefined,
     query: query || undefined,
     sortBy,
