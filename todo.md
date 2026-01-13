@@ -178,3 +178,122 @@
 - [ ] 集成測試和端到端測試
 - [ ] 前端 UI 測試和用戶交互驗證
 - [ ] 部署到生產環境
+
+
+## SOUL MATE 架構功能擴展 (基於 GitHub Copilot 提示詞)
+
+### 1. 師傅審核系統
+- [ ] 更新 teacherProfiles 表，添加 status、submittedAt、approvedAt、approvedBy、rejectionReason 欄位
+- [ ] 創建 teacher_approval_history 表
+- [ ] 實現 superadmin.getPendingTeachers API
+- [ ] 實現 superadmin.approveTeacher API
+- [ ] 實現 superadmin.rejectTeacher API
+- [ ] 實現 teachers.getApprovalStatus API
+- [ ] 修改 teachers.search 路由，添加狀態過濾
+- [ ] 創建 TeacherApprovalPanel.tsx 組件（管理員審核頁面）
+- [ ] 創建 TeacherApprovalStatus.tsx 頁面（師傅申請狀態）
+- [ ] 更新老師註冊流程，顯示「申請已提交」頁面
+- [ ] 編寫師傅審核系統單元測試
+- [ ] 測試全部通過
+
+### 2. Google Calendar 整合
+- [ ] 設置 Google OAuth 認證（Client ID、Secret、重定向 URI）
+- [ ] 創建 google_calendar_tokens 表
+- [ ] 創建 google_calendar_busy_slots 表
+- [ ] 實現 teachers.getGoogleCalendarAuthUrl API
+- [ ] 實現 teachers.connectGoogleCalendar API
+- [ ] 實現 teachers.disconnectGoogleCalendar API
+- [ ] 實現 teachers.syncGoogleCalendarBusySlots API
+- [ ] 實現 teachers.getCalendarBusySlots API
+- [ ] 創建自動同步定時任務（每天凌晨 2 點）
+- [ ] 創建令牌刷新定時任務
+- [ ] 創建 GoogleCalendarConnect.tsx 組件
+- [ ] 修改預約時段選擇，灰顯忙碌時段
+- [ ] 編寫 Google Calendar 集成測試
+- [ ] 測試全部通過
+
+### 3. 師傅儀表板增強
+- [ ] 實現 getIncomeStats API（按月份分組、環比計算）
+- [ ] 實現 getBookingStats API（按狀態計數、按月份分組）
+- [ ] 實現 getClientStats API（客戶列表、互動數據）
+- [ ] 實現 getReviewStats API（評分分佈、平均評分）
+- [ ] 修改 TeacherDashboard.tsx，添加統計卡片
+- [ ] 添加「收入報表」標籤頁（Recharts 折線圖）
+- [ ] 添加「客戶管理」標籤頁（客戶列表表格）
+- [ ] 添加「評價管理」標籤頁（評價列表 + 回覆功能）
+- [ ] 創建 IncomeChart.tsx 組件
+- [ ] 創建 BookingStatsCard.tsx 組件
+- [ ] 創建 ClientTable.tsx 組件
+- [ ] 創建 ReviewCard.tsx 組件
+- [ ] 編寫儀表板統計測試
+- [ ] 測試全部通過
+
+### 4. 課程管理系統
+- [ ] 創建 courses 表
+- [ ] 創建 course_sessions 表
+- [ ] 創建 course_enrollments 表
+- [ ] 創建 session_attendance 表
+- [ ] 實現 teacherDashboard.createCourse API
+- [ ] 實現 teacherDashboard.updateCourse API
+- [ ] 實現 teacherDashboard.publishCourse API
+- [ ] 實現 teacherDashboard.archiveCourse API
+- [ ] 實現 teacherDashboard.getMyCourses API
+- [ ] 實現 teacherDashboard.getCourseDetail API
+- [ ] 實現 teacherDashboard.addCourseSession API
+- [ ] 實現 teacherDashboard.updateSessionStatus API
+- [ ] 實現 teacherDashboard.recordAttendance API
+- [ ] 實現 courses.search API
+- [ ] 實現 courses.getDetail API
+- [ ] 實現 courses.enroll API
+- [ ] 實現 courses.getMyCourses API
+- [ ] 實現 courses.getSessionDetail API
+- [ ] 創建 CourseManagement.tsx 組件（師傅課程管理）
+- [ ] 創建 CoursesPage.tsx 頁面（學生課程列表）
+- [ ] 創建 CourseDetailPage.tsx 頁面（課程詳情）
+- [ ] 編寫課程管理系統測試
+- [ ] 測試全部通過
+
+### 5. 即時通知系統
+- [ ] 創建 notifications 表
+- [ ] 創建 email_logs 表
+- [ ] 創建 notifications.ts 服務（sendNotification、sendEmail、getNotifications、markAsRead）
+- [ ] 實現 notifications.getList API
+- [ ] 實現 notifications.getUnreadCount API
+- [ ] 實現 notifications.markAsRead API
+- [ ] 實現 notifications.markAllAsRead API
+- [ ] 實現 notifications.delete API
+- [ ] 在預約創建時發送通知
+- [ ] 在預約確認時發送通知
+- [ ] 創建預約提醒定時任務（提前 24 小時）
+- [ ] 創建課程提醒定時任務（提前 1 小時）
+- [ ] 創建郵件模板：booking_created.ejs
+- [ ] 創建郵件模板：booking_confirmed.ejs
+- [ ] 創建郵件模板：booking_reminder.ejs
+- [ ] 創建郵件模板：course_reminder.ejs
+- [ ] 創建郵件模板：course_enrolled.ejs
+- [ ] 創建 NotificationCenter.tsx 組件（通知鈴鐺）
+- [ ] 創建 NotificationsPage.tsx 頁面（完整通知列表）
+- [ ] 編寫通知系統測試
+- [ ] 測試全部通過
+
+### 6. 支付系統優化
+- [ ] 設置 Stripe API Keys 和 Webhook
+- [ ] 創建 payments 表
+- [ ] 創建 invoices 表
+- [ ] 實現 payments.createPaymentIntent API
+- [ ] 實現 payments.confirmPayment API
+- [ ] 實現 payments.handleWebhook API
+- [ ] 實現 payments.refund API
+- [ ] 實現 payments.getPaymentHistory API
+- [ ] 實現 payments.getInvoice API
+- [ ] 創建發票生成服務（invoice.ts）
+- [ ] 創建或修改 PaymentPage.tsx（支付表單）
+- [ ] 創建 PaymentHistoryPage.tsx（支付歷史）
+- [ ] 編寫支付系統測試
+- [ ] 測試全部通過
+
+### 集成和部署
+- [ ] 所有功能集成測試
+- [ ] 端到端測試
+- [ ] 性能優化和監控
+- [ ] 部署到生產環境
