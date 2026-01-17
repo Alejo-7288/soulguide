@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import * as db from "./db";
 import bcrypt from "bcryptjs";
 import { sdk } from "./_core/sdk";
+import * as googleCalendar from "./_core/googleCalendar";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -271,7 +272,6 @@ export const appRouter = router({
       return db.getDistinctRegions();
     }),
     
-<<<<<<< Updated upstream
     uploadVerification: protectedProcedure
       .input(z.object({
         verificationTypeId: z.number(),
@@ -332,13 +332,12 @@ export const appRouter = router({
     getVerificationTypes: publicProcedure
       .query(async () => {
         return db.getVerificationTypes();
-      })
-=======
+      }),
+    
     getApprovalStatus: protectedProcedure.query(async ({ ctx }) => {
       const status = await db.getTeacherApprovalStatus(ctx.user.id);
       return status;
     }),
->>>>>>> Stashed changes
   }),
 
   // ============ TEACHER DASHBOARD ============
@@ -615,6 +614,95 @@ export const appRouter = router({
       if (!profile) return { pending: 0, confirmed: 0, completed: 0, cancelled: 0, thisMonth: 0 };
       return db.getTeacherBookingStats(profile.id);
     }),
+
+    // ============ GOOGLE CALENDAR INTEGRATION ============
+    
+    // 獲取 Google Calendar 授權 URL
+    getGoogleCalendarAuthUrl: teacherProcedure.query(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: '請先建立老師資料' });
+      }
+      
+      const authUrl = googleCalendar.generateAuthUrl(profile.id);
+      return { authUrl };
+    }),
+
+    // 連接 Google Calendar（處理 OAuth 回調）
+    connectGoogleCalendar: teacherProcedure
+      .input(z.object({
+        code: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+        if (!profile) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '請先建立老師資料' });
+        }
+        
+        const result = await googleCalendar.handleOAuthCallback(input.code, profile.id);
+        return result;
+      }),
+
+    // 斷開 Google Calendar 連接
+    disconnectGoogleCalendar: teacherProcedure.mutation(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: '請先建立老師資料' });
+      }
+      
+      return googleCalendar.disconnectCalendar(profile.id);
+    }),
+
+    // 手動同步忙碌時段
+    syncGoogleCalendarBusySlots: teacherProcedure.mutation(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: '請先建立老師資料' });
+      }
+      
+      const syncedCount = await googleCalendar.syncBusySlots(profile.id);
+      return { success: true, syncedCount };
+    }),
+
+    // 獲取 Google Calendar 連接狀態
+    getGoogleCalendarStatus: teacherProcedure.query(async ({ ctx }) => {
+      const profile = await db.getTeacherProfileByUserId(ctx.user.id);
+      if (!profile) {
+        return { connected: false };
+      }
+      
+      const token = await db.getGoogleCalendarToken(profile.id);
+      if (!token || !token.isActive) {
+        return { connected: false };
+      }
+      
+      return {
+        connected: true,
+        calendarId: token.calendarId,
+        connectedAt: token.connectedAt,
+        lastSyncedAt: token.updatedAt,
+      };
+    }),
+
+    // 獲取忙碌時段（公開，供預約時使用）
+    getCalendarBusySlots: publicProcedure
+      .input(z.object({
+        teacherProfileId: z.number(),
+        startDate: z.string(),
+        endDate: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const startDate = new Date(input.startDate);
+        const endDate = new Date(input.endDate);
+        
+        const busySlots = await googleCalendar.getBusySlots(
+          input.teacherProfileId,
+          startDate,
+          endDate
+        );
+        
+        return { busySlots };
+      }),
   }),
 
   // ============ USER DASHBOARD ============
@@ -670,7 +758,7 @@ export const appRouter = router({
           throw new TRPCError({ code: 'NOT_FOUND', message: '找不到該服務' });
         }
         
-        // Check for time conflicts
+        // Check for time conflicts with existing bookings
         const hasConflict = await db.checkBookingConflict(
           input.teacherProfileId,
           new Date(input.bookingDate),
@@ -680,6 +768,19 @@ export const appRouter = router({
         
         if (hasConflict) {
           throw new TRPCError({ code: 'CONFLICT', message: '該時段已被預約，請選擇其他時間' });
+        }
+
+        // Check for Google Calendar conflicts
+        const bookingStart = new Date(`${input.bookingDate} ${input.startTime}`);
+        const bookingEnd = new Date(`${input.bookingDate} ${input.endTime}`);
+        const hasGoogleCalendarConflict = await googleCalendar.checkTimeSlotConflict(
+          input.teacherProfileId,
+          bookingStart,
+          bookingEnd
+        );
+
+        if (hasGoogleCalendarConflict) {
+          throw new TRPCError({ code: 'CONFLICT', message: '該時段師傅已有其他安排，請選擇其他時間' });
         }
         
         const bookingId = await db.createBooking({
@@ -1091,7 +1192,6 @@ export const appRouter = router({
         return { success: true };
       }),
     
-<<<<<<< Updated upstream
     getPendingVerifications: superadminProcedure
       .input(z.object({
         page: z.number().default(1),
@@ -1150,8 +1250,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         return db.createVerificationType(input);
-      })
-=======
+      }),
+    
     // 審核系統
     getPendingTeachers: superadminProcedure
       .input(z.object({
@@ -1181,7 +1281,6 @@ export const appRouter = router({
         await db.rejectTeacher(input.teacherId, ctx.user.id, input.rejectionReason);
         return { success: true, message: '師傅申請已拒絕' };
       }),
->>>>>>> Stashed changes
   }),
 });
 

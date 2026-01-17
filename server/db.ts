@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, like, or, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, inArray, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -11,13 +11,9 @@ import {
   reviews, Review, InsertReview,
   notifications, Notification, InsertNotification,
   favorites, Favorite, InsertFavorite,
-<<<<<<< Updated upstream
-  teacherVerifications, TeacherVerification, InsertTeacherVerification,
-  verificationTypes, VerificationType, InsertVerificationType,
-  verificationHistory, VerificationHistory, InsertVerificationHistory
-=======
-  teacherApprovalHistory, TeacherApprovalHistory, InsertTeacherApprovalHistory
->>>>>>> Stashed changes
+  teacherApprovalHistory, TeacherApprovalHistory, InsertTeacherApprovalHistory,
+  googleCalendarTokens, GoogleCalendarToken, InsertGoogleCalendarToken,
+  googleCalendarBusySlots, GoogleCalendarBusySlot, InsertGoogleCalendarBusySlot
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1172,7 +1168,6 @@ export async function getAllTeachersForExport() {
     .innerJoin(users, eq(teacherProfiles.userId, users.id));
 }
 
-<<<<<<< Updated upstream
 // ============ VERIFICATION FUNCTIONS ============
 
 /**
@@ -1454,7 +1449,8 @@ export async function createVerificationType(data: {
     console.error("[Database] Failed to create verification type:", error);
     throw error;
   }
-=======
+}
+
 // ============ TEACHER APPROVAL FUNCTIONS ============
 
 /**
@@ -1614,5 +1610,142 @@ export async function getTeacherApprovalHistory(teacherProfileId: number) {
     .orderBy(desc(teacherApprovalHistory.createdAt));
 
   return history;
->>>>>>> Stashed changes
 }
+
+// ============ GOOGLE CALENDAR FUNCTIONS ============
+
+/**
+ * 創建 Google Calendar 令牌
+ */
+export async function createGoogleCalendarToken(token: InsertGoogleCalendarToken) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.insert(googleCalendarTokens).values(token);
+}
+
+/**
+ * 獲取 Google Calendar 令牌
+ */
+export async function getGoogleCalendarToken(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .select()
+    .from(googleCalendarTokens)
+    .where(eq(googleCalendarTokens.teacherProfileId, teacherProfileId))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+/**
+ * 更新 Google Calendar 令牌
+ */
+export async function updateGoogleCalendarToken(
+  teacherProfileId: number,
+  updates: Partial<Omit<GoogleCalendarToken, 'id' | 'teacherProfileId'>>
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .update(googleCalendarTokens)
+    .set(updates)
+    .where(eq(googleCalendarTokens.teacherProfileId, teacherProfileId));
+}
+
+/**
+ * 刪除 Google Calendar 令牌
+ */
+export async function deleteGoogleCalendarToken(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .delete(googleCalendarTokens)
+    .where(eq(googleCalendarTokens.teacherProfileId, teacherProfileId));
+}
+
+/**
+ * 創建忙碌時段（批量）
+ */
+export async function createGoogleCalendarBusySlots(slots: InsertGoogleCalendarBusySlot[]) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  if (slots.length > 0) {
+    await db.insert(googleCalendarBusySlots).values(slots);
+  }
+}
+
+/**
+ * 獲取忙碌時段
+ */
+export async function getGoogleCalendarBusySlots(
+  teacherProfileId: number,
+  startTime: Date,
+  endTime: Date
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .select()
+    .from(googleCalendarBusySlots)
+    .where(
+      and(
+        eq(googleCalendarBusySlots.teacherProfileId, teacherProfileId),
+        lte(googleCalendarBusySlots.startTime, endTime),
+        gte(googleCalendarBusySlots.endTime, startTime)
+      )
+    )
+    .orderBy(asc(googleCalendarBusySlots.startTime));
+
+  return result;
+}
+
+/**
+ * 刪除師傅的所有忙碌時段
+ */
+export async function deleteGoogleCalendarBusySlots(teacherProfileId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .delete(googleCalendarBusySlots)
+    .where(eq(googleCalendarBusySlots.teacherProfileId, teacherProfileId));
+}
+
+/**
+ * 獲取所有活躍的 Google Calendar 連接
+ */
+export async function getAllActiveGoogleCalendarTokens() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .select()
+    .from(googleCalendarTokens)
+    .where(eq(googleCalendarTokens.isActive, true));
+
+  return result;
+}
+

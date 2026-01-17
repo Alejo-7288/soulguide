@@ -15,11 +15,13 @@ import {
   Clock,
   MapPin,
   Plus,
-  Trash2
+  Trash2,
+  Calendar
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
+import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect";
 
 const dayNames = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
 
@@ -224,6 +226,10 @@ export default function TeacherSettings() {
             <TabsTrigger value="availability" className="gap-2">
               <Clock className="w-4 h-4" />
               服務時間
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="gap-2">
+              <Calendar className="w-4 h-4" />
+              日曆整合
             </TabsTrigger>
           </TabsList>
 
@@ -468,6 +474,10 @@ export default function TeacherSettings() {
                 {updateAvailabilityMutation.isPending ? "儲存中..." : "儲存服務時間"}
               </Button>
             </div>
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <GoogleCalendarConnect />
           </TabsContent>
         </Tabs>
       </div>

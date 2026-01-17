@@ -216,61 +216,6 @@ export type Favorite = typeof favorites.$inferSelect;
 export type InsertFavorite = typeof favorites.$inferInsert;
 
 /**
-<<<<<<< Updated upstream
- * Verification types (e.g., "營業執照", "執業證書", etc.)
- */
-export const verificationTypes = mysqlTable("verification_types", {
-  id: int("id").autoincrement().primaryKey(),
-  name: varchar("name", { length: 100 }).notNull(),
-  description: text("description"),
-  isRequired: boolean("isRequired").default(false).notNull(),
-  sortOrder: int("sortOrder").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type VerificationType = typeof verificationTypes.$inferSelect;
-export type InsertVerificationType = typeof verificationTypes.$inferInsert;
-
-/**
- * Teacher verifications (credentials, licenses, certificates)
- */
-export const teacherVerifications = mysqlTable("teacher_verifications", {
-  id: int("id").autoincrement().primaryKey(),
-  teacherProfileId: int("teacherProfileId").notNull(),
-  verificationTypeId: int("verificationTypeId").notNull(),
-  status: mysqlEnum("status", ["pending", "approved", "rejected", "expired"]).default("pending").notNull(),
-  fileUrl: text("fileUrl").notNull(),
-  fileName: varchar("fileName", { length: 255 }).notNull(),
-  fileSize: int("fileSize").notNull(), // in bytes
-  fileType: varchar("fileType", { length: 100 }).notNull(), // MIME type
-  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
-  reviewedAt: timestamp("reviewedAt"),
-  reviewedBy: int("reviewedBy"), // admin user ID
-  reviewNotes: text("reviewNotes"),
-  rejectionReason: text("rejectionReason"),
-  expiresAt: timestamp("expiresAt"), // optional expiration date
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type TeacherVerification = typeof teacherVerifications.$inferSelect;
-export type InsertTeacherVerification = typeof teacherVerifications.$inferInsert;
-
-/**
- * Verification history (audit trail)
- */
-export const verificationHistory = mysqlTable("verification_history", {
-  id: int("id").autoincrement().primaryKey(),
-  verificationId: int("verificationId").notNull(),
-  status: varchar("status", { length: 50 }).notNull(),
-  changedBy: int("changedBy").notNull(), // user ID who made the change
-  notes: text("notes"),
-  changedAt: timestamp("changedAt").defaultNow().notNull(),
-});
-
-export type VerificationHistory = typeof verificationHistory.$inferSelect;
-export type InsertVerificationHistory = typeof verificationHistory.$inferInsert;
-=======
  * Teacher approval history
  */
 export const teacherApprovalHistory = mysqlTable("teacher_approval_history", {
@@ -284,4 +229,38 @@ export const teacherApprovalHistory = mysqlTable("teacher_approval_history", {
 
 export type TeacherApprovalHistory = typeof teacherApprovalHistory.$inferSelect;
 export type InsertTeacherApprovalHistory = typeof teacherApprovalHistory.$inferInsert;
->>>>>>> Stashed changes
+
+/**
+ * Google Calendar tokens for teacher calendar integration
+ */
+export const googleCalendarTokens = mysqlTable("google_calendar_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  teacherProfileId: int("teacherProfileId").notNull().unique(),
+  accessToken: varchar("accessToken", { length: 500 }).notNull(),
+  refreshToken: varchar("refreshToken", { length: 500 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  calendarId: varchar("calendarId", { length: 255 }).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  connectedAt: timestamp("connectedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GoogleCalendarToken = typeof googleCalendarTokens.$inferSelect;
+export type InsertGoogleCalendarToken = typeof googleCalendarTokens.$inferInsert;
+
+/**
+ * Google Calendar busy slots synced from teacher's calendar
+ */
+export const googleCalendarBusySlots = mysqlTable("google_calendar_busy_slots", {
+  id: int("id").autoincrement().primaryKey(),
+  teacherProfileId: int("teacherProfileId").notNull(),
+  eventId: varchar("eventId", { length: 255 }).notNull(),
+  eventTitle: varchar("eventTitle", { length: 255 }),
+  startTime: timestamp("startTime").notNull(),
+  endTime: timestamp("endTime").notNull(),
+  syncedAt: timestamp("syncedAt").defaultNow().notNull(),
+});
+
+export type GoogleCalendarBusySlot = typeof googleCalendarBusySlots.$inferSelect;
+export type InsertGoogleCalendarBusySlot = typeof googleCalendarBusySlots.$inferInsert;
+

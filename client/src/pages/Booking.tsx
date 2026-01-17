@@ -52,6 +52,16 @@ export default function Booking() {
     { enabled: !!selectedDate && teacherId > 0 }
   );
 
+  // Query Google Calendar busy slots
+  const { data: busySlotsData } = trpc.teachers.getCalendarBusySlots.useQuery(
+    {
+      teacherProfileId: teacherId,
+      startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
+      endDate: selectedDate ? format(addDays(selectedDate, 1), 'yyyy-MM-dd') : '',
+    },
+    { enabled: !!selectedDate && teacherId > 0 }
+  );
+
   const [bookingId, setBookingId] = useState<number | null>(null);
 
   const createBookingMutation = trpc.bookings.create.useMutation({
@@ -177,14 +187,15 @@ export default function Booking() {
     return `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
   }, [selectedTime, selectedService]);
 
-  // Check if a time slot conflicts with existing bookings
+  // Check if a time slot conflicts with existing bookings or Google Calendar busy slots
   const isTimeSlotBooked = (time: string) => {
-    if (!bookedSlots || !selectedService) return false;
+    if (!selectedService) return false;
     const [hour, min] = time.split(":").map(Number);
     const slotStart = hour * 60 + min;
     const slotEnd = slotStart + selectedService.service.duration;
 
-    return bookedSlots.some((booked) => {
+    // Check existing bookings
+    const hasBookingConflict = bookedSlots?.some((booked) => {
       const [bStartH, bStartM] = booked.startTime.split(":").map(Number);
       const [bEndH, bEndM] = booked.endTime.split(":").map(Number);
       const bookedStart = bStartH * 60 + bStartM;
@@ -192,6 +203,17 @@ export default function Booking() {
       // Check overlap: (start1 < end2) AND (end1 > start2)
       return slotStart < bookedEnd && slotEnd > bookedStart;
     });
+
+    // Check Google Calendar busy slots
+    const hasBusySlotConflict = busySlotsData?.busySlots?.some((busy) => {
+      const busyStart = new Date(busy.startTime);
+      const busyEnd = new Date(busy.endTime);
+      const busyStartMin = busyStart.getHours() * 60 + busyStart.getMinutes();
+      const busyEndMin = busyEnd.getHours() * 60 + busyEnd.getMinutes();
+      return slotStart < busyEndMin && slotEnd > busyStartMin;
+    });
+
+    return hasBookingConflict || hasBusySlotConflict;
   };
 
   // Check if date is available
