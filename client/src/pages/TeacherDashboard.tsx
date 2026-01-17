@@ -44,7 +44,7 @@ import {
   Wallet,
   Shield
 } from "lucide-react";
-import { TeacherVerificationUpload } from "@/components/TeacherVerificationUpload";
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
@@ -1073,10 +1073,7 @@ export default function TeacherDashboard() {
             )}
           </TabsContent>
           
-          {/* Verifications Tab */}
-          <TabsContent value="verifications">
-            <TeacherVerificationUpload />
-          </TabsContent>
+
         </Tabs>
       </div>
     </div>

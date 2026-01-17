@@ -229,38 +229,3 @@ export const teacherApprovalHistory = mysqlTable("teacher_approval_history", {
 
 export type TeacherApprovalHistory = typeof teacherApprovalHistory.$inferSelect;
 export type InsertTeacherApprovalHistory = typeof teacherApprovalHistory.$inferInsert;
-
-/**
- * Google Calendar tokens for teacher calendar integration
- */
-export const googleCalendarTokens = mysqlTable("google_calendar_tokens", {
-  id: int("id").autoincrement().primaryKey(),
-  teacherProfileId: int("teacherProfileId").notNull().unique(),
-  accessToken: varchar("accessToken", { length: 500 }).notNull(),
-  refreshToken: varchar("refreshToken", { length: 500 }).notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  calendarId: varchar("calendarId", { length: 255 }).notNull(),
-  isActive: boolean("isActive").default(true).notNull(),
-  connectedAt: timestamp("connectedAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type GoogleCalendarToken = typeof googleCalendarTokens.$inferSelect;
-export type InsertGoogleCalendarToken = typeof googleCalendarTokens.$inferInsert;
-
-/**
- * Google Calendar busy slots synced from teacher's calendar
- */
-export const googleCalendarBusySlots = mysqlTable("google_calendar_busy_slots", {
-  id: int("id").autoincrement().primaryKey(),
-  teacherProfileId: int("teacherProfileId").notNull(),
-  eventId: varchar("eventId", { length: 255 }).notNull(),
-  eventTitle: varchar("eventTitle", { length: 255 }),
-  startTime: timestamp("startTime").notNull(),
-  endTime: timestamp("endTime").notNull(),
-  syncedAt: timestamp("syncedAt").defaultNow().notNull(),
-});
-
-export type GoogleCalendarBusySlot = typeof googleCalendarBusySlots.$inferSelect;
-export type InsertGoogleCalendarBusySlot = typeof googleCalendarBusySlots.$inferInsert;
-
