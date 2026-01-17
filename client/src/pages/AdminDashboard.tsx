@@ -4,19 +4,11 @@ import { trpc } from '../lib/trpc';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-<<<<<<< Updated upstream
-import { LogOut, Users, BarChart3, Download, Upload, Shield } from 'lucide-react';
-import AdminAnalytics from '../components/admin/AdminAnalytics';
-import UserManagement from '../components/admin/UserManagement';
-import TeacherManagement from '../components/admin/TeacherManagement';
-import { AdminVerificationReview } from '../components/AdminVerificationReview';
-=======
 import { LogOut, Users, BarChart3, Download, Upload, CheckSquare } from 'lucide-react';
 import AdminAnalytics from '../components/admin/AdminAnalytics';
 import UserManagement from '../components/admin/UserManagement';
 import TeacherManagement from '../components/admin/TeacherManagement';
 import { TeacherApprovalPanel } from '../components/admin/TeacherApprovalPanel';
->>>>>>> Stashed changes
 
 export default function AdminDashboard() {
   const { data: user, isLoading } = trpc.auth.me.useQuery(undefined, { staleTime: 0, gcTime: 0 });
@@ -107,10 +99,7 @@ export default function AdminDashboard() {
               <Users className="w-4 h-4" />
               老師管理
             </TabsTrigger>
-            <TabsTrigger value="verifications" className="gap-2">
-              <Shield className="w-4 h-4" />
-              認證審核
-            </TabsTrigger>
+
           </TabsList>
 
           {/* Analytics Tab */}
@@ -133,10 +122,7 @@ export default function AdminDashboard() {
             <TeacherManagement />
           </TabsContent>
 
-          {/* Verifications Tab */}
-          <TabsContent value="verifications" className="space-y-6">
-            <AdminVerificationReview />
-          </TabsContent>
+
         </Tabs>
       </div>
     </div>

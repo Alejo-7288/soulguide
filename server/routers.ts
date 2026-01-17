@@ -271,74 +271,10 @@ export const appRouter = router({
       return db.getDistinctRegions();
     }),
     
-<<<<<<< Updated upstream
-    uploadVerification: protectedProcedure
-      .input(z.object({
-        verificationTypeId: z.number(),
-        fileUrl: z.string().url(),
-        fileName: z.string(),
-        fileSize: z.number(),
-        fileType: z.string(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user?.id) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: '未授權' });
-        }
-        const teacherProfile = await db.getTeacherProfileByUserId(ctx.user.id);
-        if (!teacherProfile) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: '老師檔案未找到' });
-        }
-        return db.uploadTeacherVerification({
-          teacherProfileId: teacherProfile.id,
-          verificationTypeId: input.verificationTypeId,
-          fileUrl: input.fileUrl,
-          fileName: input.fileName,
-          fileSize: input.fileSize,
-          fileType: input.fileType,
-        });
-      }),
-    
-    getMyVerifications: protectedProcedure
-      .query(async ({ ctx }) => {
-        if (!ctx.user?.id) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: '未授權' });
-        }
-        const teacherProfile = await db.getTeacherProfileByUserId(ctx.user.id);
-        if (!teacherProfile) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: '老師檔案未找到' });
-        }
-        return db.getTeacherVerifications(teacherProfile.id);
-      }),
-    
-    deleteVerification: protectedProcedure
-      .input(z.object({
-        verificationId: z.number(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user?.id) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: '未授權' });
-        }
-        const verification = await db.getVerificationDetail(input.verificationId);
-        if (!verification) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: '認證未找到' });
-        }
-        const teacherProfile = await db.getTeacherProfileByUserId(ctx.user.id);
-        if (!teacherProfile || teacherProfile.id !== verification.teacherProfileId) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: '無權刪除此認證' });
-        }
-        return db.deleteVerification(input.verificationId);
-      }),
-    
-    getVerificationTypes: publicProcedure
-      .query(async () => {
-        return db.getVerificationTypes();
-      })
-=======
     getApprovalStatus: protectedProcedure.query(async ({ ctx }) => {
       const status = await db.getTeacherApprovalStatus(ctx.user.id);
       return status;
     }),
->>>>>>> Stashed changes
   }),
 
   // ============ TEACHER DASHBOARD ============
@@ -1091,67 +1027,6 @@ export const appRouter = router({
         return { success: true };
       }),
     
-<<<<<<< Updated upstream
-    getPendingVerifications: superadminProcedure
-      .input(z.object({
-        page: z.number().default(1),
-        limit: z.number().default(20),
-      }))
-      .query(async ({ input }) => {
-        const offset = (input.page - 1) * input.limit;
-        const verifications = await db.getPendingVerifications(input.limit, offset);
-        const total = await db.getPendingVerificationsCount();
-        return {
-          verifications,
-          total,
-          page: input.page,
-          limit: input.limit,
-        };
-      }),
-    
-    getVerificationDetail: superadminProcedure
-      .input(z.object({
-        verificationId: z.number(),
-      }))
-      .query(async ({ input }) => {
-        return db.getVerificationDetail(input.verificationId);
-      }),
-    
-    reviewVerification: superadminProcedure
-      .input(z.object({
-        verificationId: z.number(),
-        status: z.enum(['approved', 'rejected']),
-        reviewNotes: z.string().optional(),
-        rejectionReason: z.string().optional(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user?.id) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: '未授權' });
-        }
-        return db.reviewVerification({
-          verificationId: input.verificationId,
-          status: input.status,
-          reviewedBy: ctx.user.id,
-          reviewNotes: input.reviewNotes,
-          rejectionReason: input.rejectionReason,
-        });
-      }),
-    
-    getVerificationTypes: superadminProcedure
-      .query(async () => {
-        return db.getVerificationTypes();
-      }),
-    
-    createVerificationType: superadminProcedure
-      .input(z.object({
-        name: z.string().min(1),
-        description: z.string().optional(),
-        isRequired: z.boolean().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        return db.createVerificationType(input);
-      })
-=======
     // 審核系統
     getPendingTeachers: superadminProcedure
       .input(z.object({
@@ -1181,7 +1056,6 @@ export const appRouter = router({
         await db.rejectTeacher(input.teacherId, ctx.user.id, input.rejectionReason);
         return { success: true, message: '師傅申請已拒絕' };
       }),
->>>>>>> Stashed changes
   }),
 });
 
